@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useStore } from "../lib/store";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -6,6 +6,7 @@ import {
   listSavedChannels, addSavedChannel, removeSavedChannel, touchSavedChannel,
   getMaxSavedChannels, type SavedChannel,
 } from "../lib/savedChannels";
+import { fetchTikTokAvatar, proxiedAvatar, forgetAvatar } from "../lib/tiktokProfile";
 import {
   Bookmark, BookmarkPlus, Trash2, ArrowRightLeft, Loader2, Crown, AlertCircle,
   Plus, Radio, Clock,
@@ -40,6 +41,10 @@ export function ChannelsView() {
   const [switching, setSwitching] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Foto de perfil real de cada canal de TikTok; `null` = ese canal no tiene
+  // foto (o no se pudo traer) y se queda con las iniciales de siempre.
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const avatarsRequested = useRef<Set<string>>(new Set());
 
   const isConnected = status === "connected";
   const isConnecting = status === "connecting";
@@ -61,6 +66,20 @@ export function ChannelsView() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Trae la foto de perfil de TikTok de cada canal guardado. Se pide una sola
+  // vez por usuario (el resultado además queda cacheado en localStorage).
+  useEffect(() => {
+    let cancelled = false;
+    for (const c of channels) {
+      if (avatarsRequested.current.has(c.username)) continue;
+      avatarsRequested.current.add(c.username);
+      fetchTikTokAvatar(c.username).then((url) => {
+        if (!cancelled) setAvatars((prev) => ({ ...prev, [c.username]: url }));
+      });
+    }
+    return () => { cancelled = true; };
+  }, [channels]);
 
   const flashError = (msg: string) => {
     setError(msg);
@@ -215,6 +234,7 @@ export function ChannelsView() {
             const isActive = isConnected && c.username === username.toLowerCase();
             const isBusy = switching === c.username;
             const isDeleting = deleting === c.id;
+            const avatar = avatars[c.username] ?? null;
             return (
               <div
                 key={c.id}
@@ -222,8 +242,23 @@ export function ChannelsView() {
                   isActive ? "border-primary/60 bg-primary/5" : ""
                 }`}
               >
-                <div className={`relative w-11 h-11 rounded-2xl bg-gradient-to-br ${gradientFor(c.username)} flex items-center justify-center flex-shrink-0 text-sm font-bold text-white`}>
-                  {c.username.slice(0, 2).toUpperCase()}
+                <div className="relative w-11 h-11 flex-shrink-0">
+                  {avatar ? (
+                    <img
+                      src={proxiedAvatar(avatar)}
+                      alt={c.display_name || `@${c.username}`}
+                      className="w-11 h-11 rounded-2xl object-cover border border-border"
+                      loading="lazy"
+                      onError={() => {
+                        forgetAvatar(c.username);
+                        setAvatars((prev) => ({ ...prev, [c.username]: null }));
+                      }}
+                    />
+                  ) : (
+                    <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${gradientFor(c.username)} flex items-center justify-center text-sm font-bold text-white`}>
+                      {c.username.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   {isActive && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success-400 ring-2 ring-bg-card flex items-center justify-center">
                       <Radio className="w-2 h-2 text-bg" strokeWidth={3} />

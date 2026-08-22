@@ -151,14 +151,16 @@ export class TikTokConnection {
 
       // 4404 (NOT_LIVE) can be a false negative — Euler Stream's live check
       // sometimes fails transiently. Retry a few times before declaring offline.
+      // These retries are an internal check, not a real reconnect the user
+      // needs to see, so they don't trigger the "Reconectando…" banner.
       if (ev.code === 4404) {
         if (this.retryCount < 3) {
           this.retryCount++;
-          this.handlers.onReconnecting?.();
           this.retryTimer = setTimeout(() => {
             this.reconnectSilent();
           }, 1500 * this.retryCount);
         } else {
+          this.stopAutoReconnect();
           this.handlers.onStatus?.("disconnected");
           this.handlers.onNotLive?.(username);
         }
@@ -174,13 +176,21 @@ export class TikTokConnection {
             this.reconnectSilent();
           }, 2000 * this.retryCount);
         } else {
+          this.stopAutoReconnect();
           this.handlers.onStatus?.("disconnected");
           this.handlers.onError?.(
             "No se pudo conectar con el canal. Vuelve a intentarlo en unos segundos."
           );
         }
+      } else if (ev.code === 4005) {
+        // La transmisión terminó — para quien mira, es lo mismo que "no está
+        // en vivo": se avisa y se deja de intentar reconectar solo.
+        this.stopAutoReconnect();
+        this.handlers.onStatus?.("disconnected");
+        this.handlers.onNotLive?.(username);
       } else {
-        // 1000 (normal), 4005 (stream ended), 4400/4401/4403 (config/auth), 4429 (rate limit), 4555 (lifetime)
+        // 1000 (normal), 4400/4401/4403 (config/auth), 4429 (rate limit), 4555 (lifetime)
+        this.stopAutoReconnect();
         this.handlers.onStatus?.("disconnected");
       }
     };
@@ -368,18 +378,28 @@ export class TikTokConnection {
     }
   }
 
-  disconnect() {
+  /** Cierre definitivo — el canal no está en vivo, la transmisión terminó, o
+   *  hubo un error que no se arregla reintentando. Sin esto, el listener de
+   *  visibilidad de pestaña seguía vivo y, al volver a la pestaña, disparaba
+   *  otra ronda completa de reconexión (con su aviso de "Reconectando…" y,
+   *  al fallar de nuevo, otro aviso de "canal no está en vivo") contra un
+   *  canal que ya sabíamos offline — de ahí los avisos repetidos. */
+  private stopAutoReconnect() {
     this.closedByClient = true;
-    this.stopHeartbeat();
-    this.clearPendingGiftCombos();
-    if (this.visibilityHandler && typeof document !== "undefined") {
-      document.removeEventListener("visibilitychange", this.visibilityHandler);
-      this.visibilityHandler = null;
-    }
     if (this.retryTimer) {
       clearTimeout(this.retryTimer);
       this.retryTimer = null;
     }
+    if (this.visibilityHandler && typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+  }
+
+  disconnect() {
+    this.stopAutoReconnect();
+    this.stopHeartbeat();
+    this.clearPendingGiftCombos();
     this.retryCount = 0;
     if (this.ws) {
       this.ws.onopen = null;
