@@ -12,7 +12,30 @@ Body: { "query": "bad bunny tití me preguntó" }
 
 Busca canciones en YouTube desde el servidor para evitar el bloqueo CORS del navegador.
 Devuelve { videoId, title, channel } de la primera coincidencia, o { not_found: true }.
+
+Función pública (sin login) a propósito — pedir canciones es parte del chat. Como no
+requiere cuenta, cualquiera que conozca esta URL podría machacarla sin límite, gastando
+la IP del servidor contra YouTube (riesgo de que YouTube la bloquee) o usándola como
+proxy de búsqueda genérico. Límite simple por IP como mitigación mínima.
 */
+
+const requestsByIp = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 20;
+
+function clientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = (requestsByIp.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  timestamps.push(now);
+  requestsByIp.set(ip, timestamps);
+  return timestamps.length > RATE_LIMIT_MAX;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -24,6 +47,13 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: "Método no permitido. Usa POST." }),
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (isRateLimited(clientIp(req))) {
+      return new Response(
+        JSON.stringify({ error: "Demasiadas búsquedas seguidas. Espera un momento." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

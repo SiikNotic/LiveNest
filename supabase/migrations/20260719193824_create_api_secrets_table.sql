@@ -30,7 +30,12 @@ ALTER TABLE api_secrets ENABLE ROW LEVEL SECURITY;
 -- Intencionalmente SIN políticas: bloquea todo acceso desde el cliente (anon/auth).
 -- Solo el service role puede acceder (bypassa RLS), usado por las Edge Functions.
 
+-- La clave real de Euler Stream vivía aquí en texto plano. Este repo es
+-- público, así que quedó expuesta en el historial de git — se retiró de
+-- este archivo (revisión de seguridad) y DEBE rotarse desde el panel de
+-- Euler Stream; la clave vieja hay que darla por comprometida. Después de
+-- rotarla, cárgala en `api_secrets` directamente en Supabase (SQL editor
+-- o Table editor), nunca en un archivo versionado.
 INSERT INTO api_secrets (provider, key_name, secret_value)
-VALUES ('eulerstream', 'api_key', 'tk_d771cba8da0f150e481735bdac166c8c45f09c1338f3504d')
-ON CONFLICT (provider, key_name) DO UPDATE
-  SET secret_value = EXCLUDED.secret_value, updated_at = now();
+VALUES ('eulerstream', 'api_key', '')
+ON CONFLICT (provider, key_name) DO NOTHING;

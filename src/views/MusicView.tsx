@@ -30,6 +30,7 @@ export function MusicView() {
   const currentSong = useStore((s) => s.currentSong);
   const skipSong = useStore((s) => s.skipSong);
   const updateSongStatus = useStore((s) => s.updateSongStatus);
+  const stopMusic = useStore((s) => s.stopMusic);
   const loadSongQueue = useStore((s) => s.loadSongQueue);
   const addSongByUrl = useStore((s) => s.addSongByUrl);
   const { t } = useI18n();
@@ -70,6 +71,13 @@ export function MusicView() {
 
   function removeFromQueue(song: SongRequest) {
     updateSongStatus(song.id, "skipped");
+  }
+
+  // Quitar la canción que SUENA AHORA necesita parar el reproductor ya, sin
+  // esperar a la base de datos (ver stopMusic en el store) — distinto de
+  // quitar una canción que solo espera en la cola.
+  function stopCurrent() {
+    stopMusic();
   }
 
   async function handleAddUrl() {
@@ -201,7 +209,7 @@ export function MusicView() {
                     )}
                   </button>
                   <button
-                    onClick={() => removeFromQueue(currentSong)}
+                    onClick={stopCurrent}
                     className="w-10 h-10 rounded-full bg-bg-hover flex items-center justify-center text-muted hover:text-error-400 hover:bg-error/10 transition-colors card-press"
                     title={t("music_remove")}
                   >

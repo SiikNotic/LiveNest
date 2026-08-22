@@ -23,7 +23,7 @@ export function ChatView() {
   const [playerState, setPlayerState] = useState<PlayerState>(ytPlayer.getState());
   const currentSong = useStore((s) => s.currentSong);
   const skipSong = useStore((s) => s.skipSong);
-  const updateSongStatus = useStore((s) => s.updateSongStatus);
+  const stopMusic = useStore((s) => s.stopMusic);
 
   useEffect(() => {
     return ytPlayer.subscribe(setPlayerState);
@@ -46,7 +46,7 @@ export function ChatView() {
           videoId={currentSong!.video_id!}
           onTogglePlay={() => ytPlayer.togglePlay()}
           onSkip={() => skipSong()}
-          onRemove={() => updateSongStatus(currentSong!.id, "skipped")}
+          onRemove={() => stopMusic()}
           onSeek={(s) => ytPlayer.seekTo(s)}
         />
       )}

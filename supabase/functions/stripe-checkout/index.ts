@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,11 +28,29 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { priceId, userId, duration } = await req.json();
+    // El userId SIEMPRE se toma del JWT del que llama, nunca del body — antes
+    // se confiaba en el userId que mandaba el cliente, así que cualquiera
+    // (autenticado o no) podía crear una sesión de pago con metadata.user_id
+    // apuntando a la cuenta de otra persona.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await callerClient.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Debes iniciar sesión." }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = userData.user.id;
 
-    if (!priceId || !userId || !duration) {
+    const { priceId, duration } = await req.json();
+
+    if (!priceId || !duration) {
       return new Response(
-        JSON.stringify({ error: "Faltan parámetros: priceId, userId, duration" }),
+        JSON.stringify({ error: "Faltan parámetros: priceId, duration" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

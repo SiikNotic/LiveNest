@@ -4,6 +4,7 @@ import { voiceManager, cleanNameForSpeech } from "./voiceManager";
 import { soundManager, isCustomSoundUrl } from "./soundManager";
 import { applyFilters, applyTemplate } from "./eventProcessor";
 import { TikTokConnection, type TikTokEvent, type ConnectionStatus } from "./tiktokConnection";
+import { ytPlayer } from "./youtubePlayer";
 
 const MAX_MESSAGES = 100;
 const MAX_EVENTS = 200;
@@ -58,6 +59,7 @@ type State = {
   addSongByUrl: (videoId: string, username: string) => Promise<void>;
   updateSongStatus: (id: string, status: SongRequest["status"], extra?: Partial<SongRequest>) => Promise<void>;
   skipSong: () => Promise<void>;
+  stopMusic: () => Promise<void>;
 };
 
 let connection: TikTokConnection | null = null;
@@ -512,16 +514,39 @@ export const useStore = create<State>((set, get) => ({
   },
 
   updateSongStatus: async (id, status, extra) => {
-    await supabase.from("song_requests").update({ status, ...extra }).eq("id", id);
+    const { error } = await supabase.from("song_requests").update({ status, ...extra }).eq("id", id);
+    // Si el guardado falla (red, RLS, lo que sea), NO seguir como si hubiera
+    // funcionado: antes se seguía de largo igual, y si esta fila seguía
+    // marcada "playing" en la base, la siguiente recarga de la cola la
+    // volvía a traer como canción actual — la canción "terminaba" en la UI
+    // pero la base seguía pensando que sonaba, y volvía a aparecer.
+    if (error) {
+      set({ error: "No se pudo actualizar la canción. Intenta de nuevo." });
+      return;
+    }
 
-    // Auto-avance: cuando la canción actual termina o se salta,
-    // marcar la siguiente en la cola como "playing" antes de recargar
-    // para que el reproductor pase directamente a la siguiente.
-    if (status === "played" || status === "skipped") {
-      const state = get();
+    // Auto-avance: cuando la canción ACTUAL termina o se salta, marcar la
+    // siguiente en la cola como "playing" antes de recargar para que el
+    // reproductor pase directamente a la siguiente. Esto NUNCA debe pasar
+    // al quitar una canción que solo está en cola (aún no suena) — antes
+    // se aplicaba igual y quitar cualquier canción de la lista de espera
+    // secuestraba la que sí estaba sonando, reemplazándola por el
+    // siguiente turno de la cola sin que nadie lo pidiera.
+    const state = get();
+    const isCurrent = state.currentSong?.id === id;
+
+    if ((status === "played" || status === "skipped") && isCurrent) {
       if (state.songQueue.length > 0) {
         const next = state.songQueue[0];
-        await supabase.from("song_requests").update({ status: "playing" }).eq("id", next.id);
+        const { error: nextError } = await supabase
+          .from("song_requests")
+          .update({ status: "playing" })
+          .eq("id", next.id);
+        if (nextError) {
+          set({ error: "No se pudo pasar a la siguiente canción." });
+          await get().loadSongQueue();
+          return;
+        }
         // Actualizar estado local inmediatamente para evitar un hueco
         // donde currentSong sea null y el reproductor se detenga
         set({
@@ -530,7 +555,9 @@ export const useStore = create<State>((set, get) => ({
         });
         return;
       }
-      // No hay más canciones en la cola
+      // No hay más canciones en la cola — parar de verdad, ya (no solo
+      // esperar a que la recarga de abajo lo confirme).
+      ytPlayer.stop();
       set({ currentSong: null });
     }
 
@@ -542,6 +569,21 @@ export const useStore = create<State>((set, get) => ({
     if (state.currentSong) {
       await get().updateSongStatus(state.currentSong.id, "skipped");
     }
+  },
+
+  /** Detiene la música YA, sin esperar a la base de datos — el botón de
+   *  Stop no debe poder quedarse "pensando": corta el reproductor de
+   *  inmediato y limpia el estado local, y el guardado en la base va
+   *  detrás en segundo plano. */
+  stopMusic: async () => {
+    const state = get();
+    ytPlayer.stop();
+    const current = state.currentSong;
+    set({ currentSong: null });
+    if (current) {
+      await supabase.from("song_requests").update({ status: "skipped" }).eq("id", current.id);
+    }
+    await get().loadSongQueue();
   },
 
   addSongByUrl: async (videoId: string, username: string) => {

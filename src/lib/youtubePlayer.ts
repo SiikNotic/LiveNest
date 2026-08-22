@@ -190,10 +190,25 @@ class YouTubePlayerManager {
   // --- internals ---
 
   private performLoad(videoId: string, token: number) {
-    // No recargar si ya está reproduciendo el mismo vídeo
+    // No recargar si ya está reproduciendo el mismo vídeo — pero solo si
+    // sigue realmente cargado (reproduciendo, en pausa o cargando). Si ya
+    // terminó (estado "ended") o nunca llegó a arrancar, player.playVideo()
+    // sobre ÉL MISMO no lo "reanuda": la API de YouTube lo REINICIA desde
+    // el segundo 0. Eso es lo que hacía que, tras terminar la última
+    // canción, si algo volvía a pedir el mismo videoId (una recarga de la
+    // cola, una carrera con el guardado en la base), la canción "volviera
+    // y se repitiera" en vez de quedarse detenida. Cuando el player no
+    // está realmente activo, se cae al camino de abajo y se recarga de
+    // verdad con loadVideoById.
     if (this.currentVideoId === videoId && this.player) {
-      try { this.player.playVideo(); } catch {}
-      return;
+      let liveState = -1;
+      try { liveState = this.player.getPlayerState(); } catch {}
+      // 1 playing, 2 paused, 3 buffering — el vídeo sigue vivo, solo hace
+      // falta retomarlo.
+      if (liveState === 1 || liveState === 2 || liveState === 3) {
+        try { this.player.playVideo(); } catch {}
+        return;
+      }
     }
     if (!this.apiReady || !this.player) {
       this.pendingVideoId = videoId;
