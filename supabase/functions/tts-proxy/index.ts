@@ -215,6 +215,104 @@ async function elevenlabsTTS(
   return await resp.arrayBuffer();
 }
 
+// Inworld TTS — voces premium en inglés y español (y más idiomas).
+//
+// La clave se guarda en la tabla `api_secrets` (igual que la de Euler
+// Stream) en vez de como secreto de Edge Function como ElevenLabs, porque
+// desde esta sesión no había forma de crear un secreto de función — el
+// resultado es igual de seguro (solo el service role la lee, nunca el
+// cliente), solo cambia dónde vive.
+//
+// La clave de Inworld ya viene en el formato que pide su cabecera
+// Authorization: Basic — es base64(workspaceKey:workspaceSecret), y el
+// panel de Inworld te la da ya codificada así, lista para usar tal cual.
+//
+// NOTA: no pude verificar la documentación de Inworld en vivo desde este
+// entorno (su web está bloqueada), así que el endpoint/formato de abajo
+// viene de lo que sé de su API — si algo devuelve 404 o un error de forma
+// inesperada, ese mensaje trae la pista exacta de qué ajustar.
+async function inworldApiKey(): Promise<string> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+
+  const { data, error } = await supabase
+    .from("api_secrets")
+    .select("secret_value")
+    .eq("provider", "inworld")
+    .eq("key_name", "api_key")
+    .maybeSingle();
+
+  if (error || !data?.secret_value) {
+    throw new Error("No se encontró la API key de Inworld.");
+  }
+  return data.secret_value as string;
+}
+
+// Lista las voces disponibles en la cuenta de Inworld, con el idioma que
+// cada una soporta — así el catálogo se arma con datos reales en vez de
+// una lista de nombres adivinada a mano.
+async function inworldListVoices(): Promise<unknown> {
+  const apiKey = await inworldApiKey();
+
+  const resp = await fetch("https://api.inworld.ai/tts/v1/voices", {
+    method: "GET",
+    headers: { "Authorization": `Basic ${apiKey}` },
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Inworld API error ${resp.status}: ${errText}`);
+  }
+
+  const data = await resp.json();
+  const rawVoices: any[] = Array.isArray(data?.voices) ? data.voices
+    : Array.isArray(data) ? data
+    : [];
+
+  return rawVoices.map((v) => ({
+    id: v.voiceId ?? v.voice_id ?? v.id ?? v.name,
+    name: v.displayName ?? v.display_name ?? v.name ?? v.voiceId ?? v.voice_id,
+    gender: v.gender ?? null,
+    languages: v.languages ?? v.languageCodes ?? v.language_codes ?? (v.language ? [v.language] : []),
+    description: v.description ?? null,
+  }));
+}
+
+// Inworld TTS — requiere la clave guardada en api_secrets (provider='inworld').
+async function inworldTTS(text: string, voiceId: string, modelId: string): Promise<ArrayBuffer> {
+  const apiKey = await inworldApiKey();
+
+  const resp = await fetch("https://api.inworld.ai/tts/v1/voice", {
+    method: "POST",
+    headers: {
+      "Authorization": `Basic ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text,
+      voiceId,
+      modelId: modelId || "inworld-tts-1",
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Inworld API error ${resp.status}: ${errText}`);
+  }
+
+  const data = await resp.json();
+  const base64Audio: string | undefined = data?.audioContent ?? data?.audio_content ?? data?.audio;
+  if (!base64Audio) {
+    throw new Error("Inworld: la respuesta no trajo audio.");
+  }
+
+  const binary = atob(base64Audio);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -238,7 +336,7 @@ Deno.serve(async (req: Request) => {
     // sent in Authorization) actually has an active license before doing
     // any work — this can't be bypassed by calling the function directly,
     // since it no longer trusts a bare "provider" field from the client.
-    if (provider === "google" || provider === "elevenlabs") {
+    if (provider === "google" || provider === "elevenlabs" || provider === "inworld") {
       const authHeader = req.headers.get("Authorization") ?? "";
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -308,6 +406,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // List all Inworld voices available on the account (no text needed).
+    if (action === "list-voices" && provider === "inworld") {
+      const voices = await inworldListVoices();
+      return new Response(JSON.stringify({ voices }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!text || !voiceId) {
       return new Response(JSON.stringify({ error: "Faltan parámetros: text, voiceId" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -330,16 +436,23 @@ Deno.serve(async (req: Request) => {
         stability ?? 0.5,
         similarityBoost ?? 0.75,
       );
+    } else if (provider === "inworld") {
+      audio = await inworldTTS(text, voiceId, modelId ?? "inworld-tts-1");
     } else {
-      return new Response(JSON.stringify({ error: "Proveedor no soportado. Usa 'google' o 'elevenlabs'" }), {
+      return new Response(JSON.stringify({ error: "Proveedor no soportado. Usa 'google', 'elevenlabs' o 'inworld'" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Inworld devuelve WAV (audioContent en base64), no MP3 como los demás
+    // — si se sirviera igual con audio/mpeg, el navegador podría negarse a
+    // reproducirlo por el tipo MIME equivocado.
+    const audioContentType = provider === "inworld" ? "audio/wav" : "audio/mpeg";
+
     return new Response(audio, {
       headers: {
         ...corsHeaders,
-        "Content-Type": "audio/mpeg",
+        "Content-Type": audioContentType,
         "Cache-Control": "no-store",
       },
     });
