@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type VoiceProvider = "browser" | "google" | "elevenlabs";
+export type VoiceProvider = "browser" | "google" | "elevenlabs" | "inworld";
 
 export type SpeakOptions = {
   voiceId?: string;
@@ -15,7 +15,7 @@ export type VoiceInfo = {
   name: string;
   lang: string;
   gender?: "male" | "female" | "neutral";
-  source: "browser" | "google" | "elevenlabs";
+  source: "browser" | "google" | "elevenlabs" | "inworld";
 };
 
 // Google Translate TTS — free, no API key, no llamada por WebSocket (a
@@ -44,6 +44,28 @@ const ELEVENLABS_VOICE_CATALOG: VoiceInfo[] = [
   { id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", lang: "multi", gender: "female", source: "elevenlabs" },
   { id: "pNInz6obpgDQGcFmaJgB", name: "Adam", lang: "multi", gender: "male", source: "elevenlabs" },
 ];
+
+// Small fallback shown only until the real account voice list loads (or if
+// it fails to load). The real, always-up-to-date list is fetched live from
+// the Inworld account via VoiceManager.refreshInworldVoices().
+const INWORLD_VOICE_CATALOG: VoiceInfo[] = [
+  { id: "Ashley", name: "Ashley", lang: "en", gender: "female", source: "inworld" },
+  { id: "Craig", name: "Craig", lang: "en", gender: "male", source: "inworld" },
+];
+
+// Inworld etiqueta cada voz con los idiomas que soporta (ej. ["en", "es"]
+// o ["en-US", "es-ES"]) — se usa el primero que reconozcamos para filtrar
+// por idioma en la UI; si no viene nada, se muestra en ambos filtros.
+function mapInworldLang(languages: unknown): string {
+  if (!Array.isArray(languages) || languages.length === 0) return "multi";
+  for (const l of languages) {
+    if (typeof l !== "string") continue;
+    const lower = l.toLowerCase();
+    if (lower.startsWith("es")) return "es";
+    if (lower.startsWith("en")) return "en";
+  }
+  return "multi";
+}
 
 function mapElevenLabsGender(label: string | null | undefined, name: string): "male" | "female" | "neutral" {
   const l = (label ?? "").toLowerCase();
@@ -120,7 +142,7 @@ class VoiceManager {
   private currentAudio: HTMLAudioElement | null = null;
 
   /**
-   * Google TTS and ElevenLabs are member-only and gated server-side by the
+   * Google TTS, ElevenLabs and Inworld are member-only and gated server-side by the
    * caller's identity — so we must send the user's real session token, not
    * just the public anon key, or the server can't tell who's asking.
    */
@@ -132,6 +154,10 @@ class VoiceManager {
   private elevenlabsLoading = false;
   private elevenlabsError: string | null = null;
   private elevenlabsLoaded = false;
+  private inworldVoices: VoiceInfo[] = INWORLD_VOICE_CATALOG;
+  private inworldLoading = false;
+  private inworldError: string | null = null;
+  private inworldLoaded = false;
 
   constructor() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -244,11 +270,88 @@ class VoiceManager {
     }
   }
 
+  getInworldVoices(): VoiceInfo[] {
+    return this.inworldVoices;
+  }
+
+  get inworldVoicesLoading(): boolean {
+    return this.inworldLoading;
+  }
+
+  get inworldVoicesError(): string | null {
+    return this.inworldError;
+  }
+
+  /**
+   * Fetches the real, current list of voices from the Inworld account,
+   * replacing the small hardcoded fallback list. Safe to call repeatedly —
+   * only re-fetches if not already loaded/loading, unless `force` is set.
+   */
+  async refreshInworldVoices(force = false): Promise<void> {
+    if (this.inworldLoading) return;
+    if (this.inworldLoaded && !force) return;
+
+    this.inworldLoading = true;
+    this.inworldError = null;
+    this.listeners.forEach((l) => l());
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const proxyUrl = `${supabaseUrl}/functions/v1/tts-proxy`;
+      const bearer = await this.authBearer();
+
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${bearer}`,
+        },
+        body: JSON.stringify({ action: "list-voices", provider: "inworld" }),
+      });
+
+      if (res.status === 403) {
+        throw new Error("Inworld es solo para miembros. Hazte miembro para desbloquearlo.");
+      }
+
+      if (!res.ok) {
+        let errBody: string;
+        try {
+          const errData = await res.json();
+          errBody = errData?.error ?? JSON.stringify(errData);
+        } catch {
+          errBody = await res.text().catch(() => "(respuesta vacía)");
+        }
+        throw new Error(`HTTP ${res.status} — ${errBody}`);
+      }
+
+      const data = await res.json();
+      const rawVoices: any[] = Array.isArray(data?.voices) ? data.voices : [];
+
+      if (rawVoices.length > 0) {
+        this.inworldVoices = rawVoices.map((v) => ({
+          id: v.id,
+          name: v.name ?? v.id,
+          lang: mapInworldLang(v.languages),
+          gender: v.gender === "male" || v.gender === "female" ? v.gender : inferGender(v.name ?? v.id),
+          source: "inworld" as const,
+        }));
+      }
+      this.inworldLoaded = true;
+    } catch (err) {
+      this.inworldError = err instanceof Error ? err.message : "No se pudieron cargar las voces de Inworld";
+      // Keep whatever list we already had (fallback or previous successful fetch)
+    } finally {
+      this.inworldLoading = false;
+      this.listeners.forEach((l) => l());
+    }
+  }
+
   getVoicesForProvider(provider: VoiceProvider): VoiceInfo[] {
     switch (provider) {
       case "browser": return this.getBrowserVoices();
       case "google": return this.getGoogleVoices();
       case "elevenlabs": return this.getElevenLabsVoices();
+      case "inworld": return this.getInworldVoices();
     }
   }
 
@@ -279,6 +382,8 @@ class VoiceManager {
       return this.speakBrowser(clean, opts);
     } else if (provider === "google") {
       return this.speakGoogle(clean, opts);
+    } else if (provider === "inworld") {
+      return this.speakInworld(clean, opts);
     } else {
       return this.speakElevenLabs(clean, opts);
     }
@@ -459,6 +564,71 @@ class VoiceManager {
     const audioBlob = await res.blob();
     if (audioBlob.size === 0) {
       throw new Error("ElevenLabs: el servidor devolvió audio vacío");
+    }
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.volume = Math.max(0, Math.min(1, volume));
+    this.currentAudio = audio;
+
+    return new Promise<void>((resolve) => {
+      audio.onended = () => { URL.revokeObjectURL(audioUrl); this.currentAudio = null; resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(audioUrl); this.currentAudio = null; resolve(); };
+      audio.play().catch(() => { URL.revokeObjectURL(audioUrl); this.currentAudio = null; resolve(); });
+    });
+  }
+
+  private async speakInworld(text: string, opts: SpeakOptions): Promise<void> {
+    const voiceId = opts.voiceId || "Ashley";
+    const volume = opts.volume ?? 1;
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const proxyUrl = `${supabaseUrl}/functions/v1/tts-proxy`;
+    const bearer = await this.authBearer();
+
+    let res: Response;
+    try {
+      res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${bearer}`,
+        },
+        body: JSON.stringify({
+          provider: "inworld",
+          text: text.slice(0, 5000),
+          voiceId,
+          modelId: "inworld-tts-1",
+        }),
+      });
+    } catch (err) {
+      throw new Error(
+        `Inworld: no se pudo conectar con el servidor. ${err instanceof Error ? err.message : ""}`
+      );
+    }
+
+    if (res.status === 403) {
+      throw new Error("Inworld es solo para miembros. Hazte miembro para desbloquearlo.");
+    }
+
+    if (!res.ok) {
+      let errBody: string;
+      try {
+        const errData = await res.json();
+        errBody = errData?.error ?? JSON.stringify(errData);
+      } catch {
+        try {
+          errBody = await res.text();
+        } catch {
+          errBody = "(respuesta vacía)";
+        }
+      }
+      throw new Error(`Inworld: HTTP ${res.status} — ${errBody}`);
+    }
+
+    const audioBlob = await res.blob();
+    if (audioBlob.size === 0) {
+      throw new Error("Inworld: el servidor devolvió audio vacío");
     }
 
     const audioUrl = URL.createObjectURL(audioBlob);
