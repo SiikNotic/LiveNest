@@ -2,6 +2,8 @@
 
 *The app that reads your TikTok chat out loud so you don't have to squint at your phone while dancing for four hours straight.*
 
+> ⚠️ **Warning:** this app has read more messages than your ex, and unlike them, it actually responds.
+
 ## What is this?
 
 LiveNest connects to your TikTok Live, reads the chat aloud, announces gifts and follows, plays songs your viewers request, and generally does the multitasking your one brain physically cannot during a live.
