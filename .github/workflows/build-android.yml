@@ -44,9 +44,18 @@ jobs:
       - run: npm run build:web
         env:
           # Mismas variables públicas que usa el deploy web (Settings →
-          # Secrets and variables → Actions → Variables).
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          # Secrets and variables → Actions → Variables) — con fallback al
+          # valor real si la variable del repo no está disponible acá. Esto
+          # pasó en la práctica: esas "Variables" están restringidas a la
+          # rama main (Selected branches), así que en cualquier otra rama
+          # (como claude/**, donde corre este workflow) llegaban vacías, la
+          # app tiraba "Falta configuración de Supabase" al arrancar (ver
+          # src/lib/supabase.ts) y la APK quedaba en pantalla blanca. No son
+          # datos sensibles — la anon key está pensada para ser pública, la
+          # protección real es RLS en la base — así que el fallback no es un
+          # riesgo de seguridad, solo evita depender de esa restricción.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://wlkzpvfkczkrvuueblfq.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsa3pwdmZrY3prcnZ1dWVibGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMjEzNTQsImV4cCI6MjA5OTg5NzM1NH0.hAiC2rXZ8JlhasA7sz8drdJ6F7qZQrNIRL0IUsyyIU4' }}
 
       - run: npx cap sync android
 
