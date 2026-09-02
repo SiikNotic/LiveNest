@@ -26,7 +26,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # @capacitor/cli 8.x exige Node >=22 (el resto del proyecto sigue
+          # buildeando con Node 20 tranquilo, ver deploy-pages.yml — esto es
+          # solo para este workflow, que corre `npx cap sync`).
+          node-version: 22
           cache: npm
 
       - uses: actions/setup-java@v4
