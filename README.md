@@ -34,3 +34,9 @@ npm install && npm run dev
 ## Deploying
 
 Every push to `main` builds and publishes the app to GitHub Pages via `.github/workflows/deploy-pages.yml` — no third-party build service in the loop anymore. See that workflow for the two repo variables it needs (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+
+## Android
+
+Yes, it's also an Android app now, wrapped with [Capacitor](https://capacitorjs.com/) — same `src/`, same brain, just wearing a native shell. See [`ANDROID.md`](./ANDROID.md) for how it's set up and its current limitations (screen-lock TTS still needs a native foreground service).
+
+📥 **Download the latest debug APK**: [GitHub Actions → Compilar APK de Android (debug)](https://github.com/SiikNotic/LiveNest/actions/workflows/build-android.yml) — open the newest successful run and grab `livenest-debug-apk` under **Artifacts**. Requires being logged into GitHub (Actions artifacts aren't public), and it's an unsigned debug build — fine to sideload for testing, not for the Play Store.
