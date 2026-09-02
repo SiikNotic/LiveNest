@@ -22,6 +22,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Esquema propio para que el navegador externo pueda devolver
+                 el control a la app después del login con Google. El login
+                 en sí ya se abre bien en el navegador del sistema (Capacitor
+                 manda ahí cualquier navegación fuera del dominio propio),
+                 pero sin esto Supabase no tiene a dónde redirigir de vuelta
+                 una vez que Google confirma — se quedaba tildado en el
+                 navegador. Ver signInWithGoogle en src/lib/auth.tsx. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="net.livenest.app" android:host="auth-callback" />
+            </intent-filter>
+
         </activity>
 
         <provider

@@ -1,8 +1,46 @@
 import { useEffect, useState, useCallback, createContext, useContext, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { supabase, type Profile, type UserLicense } from "./supabase";
 import { useStore } from "./store";
 import { useI18n } from "./i18n";
+
+// En la app nativa el login con Google se abre en el navegador del sistema
+// (Capacitor manda ahí cualquier navegación fuera del propio dominio), pero
+// ese navegador no tiene forma de "volver" al WebView de la app cuando
+// termina — a diferencia de la web, donde el redirect vuelve a la misma
+// pestaña sola. Para eso existe este esquema propio: Supabase redirige acá
+// en vez de a una URL http(s), Android lo reconoce (intent-filter en
+// AndroidManifest.xml) y reabre la app con la URL completa disponible via
+// el evento appUrlOpen de abajo. Requiere que esta URL esté agregada en
+// Supabase → Authentication → URL Configuration → Redirect URLs.
+const NATIVE_OAUTH_REDIRECT = "net.livenest.app://auth-callback";
+
+/** Termina el login nativo: recibe la URL completa que Android le devolvió
+ *  a la app (con el token en el hash o un ?code= de PKCE) y establece la
+ *  sesión de Supabase a partir de ahí — el mismo trabajo que en la web hace
+ *  solo supabase-js al detectar el hash en window.location. */
+async function completeNativeOAuth(url: string) {
+  if (!url.startsWith(NATIVE_OAUTH_REDIRECT)) return;
+  try {
+    if (url.includes("access_token=")) {
+      const hash = url.split("#")[1] ?? "";
+      const params = new URLSearchParams(hash);
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        await supabase.auth.setSession({ access_token, refresh_token });
+      }
+    } else if (url.includes("code=")) {
+      await supabase.auth.exchangeCodeForSession(url);
+    }
+  } catch {
+    // Si algo no matchea (link viejo, formato inesperado), no hay nada
+    // mejor que hacer que dejar a la persona en la pantalla de login para
+    // que lo intente de nuevo — no vale la pena romper la app por esto.
+  }
+}
 
 type AuthState = {
   session: Session | null;
@@ -153,7 +191,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })();
     });
 
-    return () => listener.subscription.unsubscribe();
+    // Solo en la app nativa: escucha cuando Android reabre la app después
+    // del login con Google (ver NATIVE_OAUTH_REDIRECT arriba). En la web no
+    // hace nada — @capacitor/app existe igual ahí, pero appUrlOpen nunca se
+    // dispara fuera de una app nativa.
+    let urlOpenHandle: { remove: () => void } | undefined;
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener("appUrlOpen", ({ url }) => {
+        void completeNativeOAuth(url);
+      }).then((handle) => {
+        urlOpenHandle = handle;
+      });
+    }
+
+    return () => {
+      listener.subscription.unsubscribe();
+      urlOpenHandle?.remove();
+    };
   }, [loadProfile, loadLicense]);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -223,7 +277,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + import.meta.env.BASE_URL,
+        redirectTo: Capacitor.isNativePlatform()
+          ? NATIVE_OAUTH_REDIRECT
+          : window.location.origin + import.meta.env.BASE_URL,
       },
     });
     return { error: error?.message ?? null };
