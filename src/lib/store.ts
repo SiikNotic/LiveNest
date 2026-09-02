@@ -6,6 +6,7 @@ import { applyFilters, applyTemplate } from "./eventProcessor";
 import { TikTokConnection, checkChannelLive, type TikTokEvent, type ConnectionStatus } from "./tiktokConnection";
 import { ytPlayer } from "./youtubePlayer";
 import { useI18n } from "./i18n";
+import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
 
 const MAX_MESSAGES = 100;
 const MAX_EVENTS = 200;
@@ -196,6 +197,7 @@ export const useStore = create<State>((set, get) => ({
 
       connection?.disconnect();
       connection = null;
+      void disableKeepAwake();
       set({
         status: "disconnected",
         reconnecting: false,
@@ -206,7 +208,10 @@ export const useStore = create<State>((set, get) => ({
 
     connection = new TikTokConnection({
       onStatus: (status) => {
-        if (status === "connected") set({ reconnecting: false });
+        if (status === "connected") {
+          set({ reconnecting: false });
+          void enableKeepAwake();
+        }
         set({ status });
       },
       onError: (message) => {
@@ -221,6 +226,7 @@ export const useStore = create<State>((set, get) => ({
         // El aviso se queda hasta el próximo intento de conexión (connect()
         // lo limpia) — antes se borraba solo a los 6 segundos y era fácil
         // no llegar a verlo si estabas mirando otra cosa.
+        void disableKeepAwake();
         set({ notLiveUser: user, notLiveReason: "offline", status: "disconnected", reconnecting: false });
       },
       onEvent: (event: TikTokEvent) => {
@@ -266,6 +272,7 @@ export const useStore = create<State>((set, get) => ({
       connection.disconnect();
       connection = null;
     }
+    void disableKeepAwake();
     // Cortar la voz que esté sonando y vaciar la cola de lectura. El
     // ttsEpoch nuevo invalida cualquier mensaje que ya estuviera en la
     // cola o a medio procesar en processQueue().
@@ -312,6 +319,7 @@ export const useStore = create<State>((set, get) => ({
       // entre, aunque ya no esté conectada a nada.
       clearLiveActivity();
     }
+    void disableKeepAwake();
     voiceManager.stop();
     ytPlayer.stop();
     if (saveTimer) {

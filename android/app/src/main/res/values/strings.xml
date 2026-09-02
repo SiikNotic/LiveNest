@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LiveNest</string>
+    <string name="title_activity_main">LiveNest</string>
+    <string name="package_name">net.livenest.app</string>
+    <string name="custom_url_scheme">net.livenest.app</string>
+</resources>
