@@ -62,6 +62,30 @@ querés lectura con pantalla apagada, el siguiente paso natural es agregar
 ese foreground service (o migrar el TTS de `speechSynthesis` del navegador a
 un plugin nativo de texto a voz, que sí puede seguir corriendo ahí).
 
+## Actualización automática (sin Play Store)
+
+Cada push a `.github/workflows/build-android.yml` compila la APK y la
+publica como [GitHub Release](https://github.com/SiikNotic/LiveNest/releases/latest)
+(pública, sin login) además de como artefacto del run. La app ya instalada
+se fija sola contra esa misma URL cada vez que se abre o vuelve del segundo
+plano (`src/components/AppUpdateBanner.tsx` + `src/lib/appUpdate.ts`) y, si
+hay una versión más nueva, muestra un aviso abajo con un botón
+"Actualizar" — toca eso, Android descarga la APK en el navegador del
+sistema, y al tocar la notificación de descarga completa la instala.
+
+Esto **no** es una actualización silenciosa de un solo toque como las de
+Play Store — Android no deja instalar un APK sideloaded sin que la persona
+lo confirme al menos una vez (por seguridad, ver más abajo "Publicar en
+Google Play" si en algún momento se quiere eso de verdad). Es el máximo
+nivel de automatismo posible sin publicar en la tienda.
+
+Cómo funciona la detección: cada build de CI le pone al bundle el número de
+esa corrida de Actions (`VITE_APP_BUILD`, ver el workflow) y publica la
+release con tag `android-build-<ese número>`. La app compara ese número
+contra el de la [última release pública](https://api.github.com/repos/SiikNotic/LiveNest/releases/latest)
+vía la API de GitHub (de lectura, sin necesitar token ni login porque el
+repo es público) — si el de GitHub es mayor, hay update.
+
 ## Íconos y splash screen
 
 Capacitor generó íconos y splash screen genéricos por defecto

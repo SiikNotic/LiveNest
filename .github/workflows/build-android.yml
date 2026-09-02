@@ -1,10 +1,15 @@
 name: Compilar APK de Android (debug)
 
-# Genera una APK de LiveNest para Android y la deja como artefacto
-# descargable en el run de Actions — sin necesitar Android Studio ni el SDK
-# instalados en ninguna máquina local. Es una APK de "debug": sirve para
-# probarla en el celular (activando "Instalar apps de origen desconocido"),
-# pero no está firmada para Play Store — ver ANDROID.md para ese paso.
+# Genera una APK de LiveNest para Android y la publica en dos lugares — sin
+# necesitar Android Studio ni el SDK instalados en ninguna máquina local:
+#   1. Como artefacto del run de Actions (requiere estar logueado en GitHub
+#      para descargarlo).
+#   2. Como GitHub Release pública (sin login) — la app instalada también
+#      se fija sola contra esta cada vez que se abre/vuelve del segundo
+#      plano, y avisa si hay una más nueva (ver src/lib/appUpdate.ts).
+# Es una APK de "debug": sirve para probarla en el celular (activando
+# "Instalar apps de origen desconocido"), pero no está firmada para Play
+# Store — ver ANDROID.md para ese paso.
 on:
   push:
     branches: [main, "claude/**"]
@@ -17,6 +22,9 @@ on:
       - "package-lock.json"
       - ".github/workflows/build-android.yml"
   workflow_dispatch:
+
+permissions:
+  contents: write # crear la GitHub Release de abajo necesita esto
 
 jobs:
   build:
@@ -56,6 +64,11 @@ jobs:
           # riesgo de seguridad, solo evita depender de esa restricción.
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://wlkzpvfkczkrvuueblfq.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsa3pwdmZrY3prcnZ1dWVibGZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMjEzNTQsImV4cCI6MjA5OTg5NzM1NH0.hAiC2rXZ8JlhasA7sz8drdJ6F7qZQrNIRL0IUsyyIU4' }}
+          # Número de esta corrida de Actions, horneado en el bundle — es lo
+          # que src/lib/appUpdate.ts compara contra la última GitHub Release
+          # para avisar sola cuando hay una versión más nueva (ver el paso
+          # "Publicar GitHub Release" más abajo).
+          VITE_APP_BUILD: ${{ github.run_number }}
 
       - run: npx cap sync android
 
@@ -68,3 +81,18 @@ jobs:
           name: livenest-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: Publicar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Tag con el número de corrida — cada build es su propia release,
+          # y GitHub marca la más reciente como "latest" solo. La app la
+          # detecta vía la API pública /releases/latest (sin login) — ver
+          # src/lib/appUpdate.ts. El nombre de la release aclara que es de
+          # prueba/debug, no una versión "oficial" para el público general.
+          tag_name: android-build-${{ github.run_number }}
+          name: "LiveNest Android (debug) — build ${{ github.run_number }}"
+          body: |
+            APK de prueba generada automáticamente desde el commit ${{ github.sha }}.
+            No está firmada para Play Store — solo para instalar a mano (sideload).
+          files: android/app/build/outputs/apk/debug/app-debug.apk

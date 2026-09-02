@@ -597,6 +597,11 @@ export const translations = {
     filters_placeholder_word: "palabra",
     templates_default_content: "{user} dice: {message}",
     templates_preset_msg_content: "Mensaje de {user}: {message}",
+
+    // Actualización de la app (Android)
+    app_update_available: "Hay una versión nueva de LiveNest",
+    app_update_button: "Actualizar",
+    app_update_dismiss: "Ahora no",
   },
   en: {
     app_tagline: "Live voice reader",
@@ -1174,6 +1179,11 @@ export const translations = {
     filters_placeholder_word: "word",
     templates_default_content: "{user} says: {message}",
     templates_preset_msg_content: "Message from {user}: {message}",
+
+    // App update (Android)
+    app_update_available: "A new version of LiveNest is available",
+    app_update_button: "Update",
+    app_update_dismiss: "Not now",
   },
 } as const;
 
