@@ -3,7 +3,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n, type Lang } from "../lib/i18n";
 import { isPasswordValid } from "../lib/passwordPolicy";
 import { PasswordRequirements } from "../components/PasswordRequirements";
-import { Radio, Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -129,9 +129,7 @@ export function AuthView() {
 
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center glow-primary mb-4">
-            <Radio className="w-8 h-8 text-white" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" alt="" className="w-16 h-16 rounded-3xl glow-primary mb-4" />
           <h1 className="text-2xl font-extrabold tracking-tight">
             Live<span className="text-gradient">Nest</span>
           </h1>

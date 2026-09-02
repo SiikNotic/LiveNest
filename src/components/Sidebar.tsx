@@ -1,4 +1,4 @@
-import { Radio, MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
+import { MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -39,9 +39,7 @@ export function Sidebar({ active, onChange }: Props) {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
         <div className="relative shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center glow-primary">
-            <Radio className="w-4 h-4 text-white" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl glow-primary" />
           {status === "connected" && (
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success-400 ring-2 ring-bg-card" />
           )}

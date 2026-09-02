@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { useI18n, type Lang } from "../lib/i18n";
-import { Radio, Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Globe, Crown, Shield, Bookmark, ChevronRight } from "lucide-react";
+import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Globe, Crown, Shield, Bookmark, ChevronRight } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -129,9 +129,7 @@ export function Header({ active, onChange }: Props) {
             </button>
 
             <div className="relative shrink-0 lg:hidden">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center glow-primary">
-                <Radio className="w-5 h-5 text-white" strokeWidth={2.5} />
-              </div>
+              <img src="/logo.png" alt="" className="w-10 h-10 rounded-2xl glow-primary" />
               {status === "connected" && (
                 <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-success-400 ring-2 ring-bg-card" />
               )}
@@ -246,9 +244,7 @@ export function Header({ active, onChange }: Props) {
             <div className="p-4 border-b border-border flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center">
-                    <Radio className="w-4 h-4 text-white" strokeWidth={2.5} />
-                  </div>
+                  <img src="/logo.png" alt="" className="w-8 h-8 rounded-xl" />
                   <span className="text-sm font-extrabold">
                     Live<span className="text-gradient">Nest</span>
                   </span>
