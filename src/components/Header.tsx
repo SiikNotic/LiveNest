@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { useI18n, type Lang } from "../lib/i18n";
-import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Globe, Crown, Shield, Bookmark, ChevronRight } from "lucide-react";
+import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -24,8 +24,7 @@ const MENU_ITEMS: { id: TabId; labelKey: import("../lib/i18n").TranslationKey; i
   { id: "music", labelKey: "tab_music", icon: Music },
   { id: "notifications", labelKey: "tab_notifications", icon: Bell },
   { id: "voices", labelKey: "tab_voices", icon: Mic },
-  { id: "filters", labelKey: "tab_filters", icon: Filter },
-  { id: "templates", labelKey: "tab_templates", icon: LayoutTemplate },
+  { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
   { id: "general", labelKey: "tab_general", icon: Settings },
 ];
 

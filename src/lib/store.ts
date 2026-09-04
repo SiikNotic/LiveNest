@@ -5,7 +5,7 @@ import { soundManager, isCustomSoundUrl } from "./soundManager";
 import { applyFilters, applyTemplate } from "./eventProcessor";
 import { TikTokConnection, checkChannelLive, type TikTokEvent, type ConnectionStatus } from "./tiktokConnection";
 import { ytPlayer } from "./youtubePlayer";
-import { useI18n } from "./i18n";
+import { useI18n, type TranslationKey } from "./i18n";
 import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
 
 const MAX_MESSAGES = 100;
@@ -24,6 +24,24 @@ const TTS_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function isTtsCycleStale(cycleStart: string): boolean {
   return Date.now() - new Date(cycleStart).getTime() >= TTS_CYCLE_MS;
+}
+
+/** Frase que lee la voz para una alerta (regalo/follow/like/share/sub):
+ *  usa la que la persona haya escrito en Lectura si hay una, si no la de
+ *  siempre según el idioma. Mismo patrón de placeholders {name}/{gift}/
+ *  {count} en ambos casos, para que da lo mismo cuál se use. */
+function fillAlertPhrase(
+  custom: string | null | undefined,
+  fallbackKey: TranslationKey,
+  vars: Record<string, string | number>
+): string {
+  const tVoice = useI18n.getState().t;
+  if (!custom?.trim()) return tVoice(fallbackKey, vars);
+  let text = custom;
+  for (const [key, value] of Object.entries(vars)) {
+    text = text.replaceAll(`{${key}}`, String(value));
+  }
+  return text;
 }
 
 type State = {
@@ -598,22 +616,23 @@ export const useStore = create<State>((set, get) => ({
         // Usar el nombre del canal (nickname) si está disponible; si no, el username
         const safeName = cleanNameForSpeech(nickname || username);
         const tVoice = useI18n.getState().t;
+        const s = state.settings;
         let text = "";
         if (type === "gift") {
           const giftName = detail ?? tVoice("voice_alert_gift_default");
           text = count > 1
-            ? tVoice("voice_alert_gift_multi", { name: safeName, gift: giftName, count })
-            : tVoice("voice_alert_gift_single", { name: safeName, gift: giftName });
+            ? fillAlertPhrase(s.voice_alert_gift_multi, "voice_alert_gift_multi", { name: safeName, gift: giftName, count })
+            : fillAlertPhrase(s.voice_alert_gift_single, "voice_alert_gift_single", { name: safeName, gift: giftName });
         } else if (type === "follow") {
-          text = tVoice("voice_alert_follow", { name: safeName });
+          text = fillAlertPhrase(s.voice_alert_follow, "voice_alert_follow", { name: safeName });
         } else if (type === "like") {
           text = count > 1
-            ? tVoice("voice_alert_like_multi", { name: safeName, count })
-            : tVoice("voice_alert_like_single", { name: safeName });
+            ? fillAlertPhrase(s.voice_alert_like_multi, "voice_alert_like_multi", { name: safeName, count })
+            : fillAlertPhrase(s.voice_alert_like_single, "voice_alert_like_single", { name: safeName });
         } else if (type === "share") {
-          text = tVoice("voice_alert_share", { name: safeName });
+          text = fillAlertPhrase(s.voice_alert_share, "voice_alert_share", { name: safeName });
         } else if (type === "sub") {
-          text = tVoice("voice_alert_sub", { name: safeName });
+          text = fillAlertPhrase(s.voice_alert_sub, "voice_alert_sub", { name: safeName });
         }
         if (text) {
           const voiceId = state.settings.voice_random

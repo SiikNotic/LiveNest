@@ -49,6 +49,8 @@ const EVENTS = [
 const VOICE_EVENTS = [
   { key: "notif_voice_gift", icon: Gift, color: "text-amber-400", labelKey: "notif_gifts" as const },
   { key: "notif_voice_follow", icon: UserPlus, color: "text-primary", labelKey: "notif_followers" as const },
+  { key: "notif_voice_like", icon: Heart, color: "text-pink-400", labelKey: "notif_likes" as const },
+  { key: "notif_voice_share", icon: Share2, color: "text-sky-400", labelKey: "notif_shares" as const },
   { key: "notif_voice_sub", icon: Crown, color: "text-accent", labelKey: "notif_subs" as const },
 ] as const;
 

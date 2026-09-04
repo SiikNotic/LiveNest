@@ -1,4 +1,4 @@
-import { MessageCircle, Sparkles, Music, Bell, Mic, Filter, LayoutTemplate, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
+import { MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -14,8 +14,7 @@ const NAV_ITEMS: { id: TabId; labelKey: import("../lib/i18n").TranslationKey; ic
   { id: "music", labelKey: "tab_music", icon: Music },
   { id: "notifications", labelKey: "tab_notifications", icon: Bell },
   { id: "voices", labelKey: "tab_voices", icon: Mic },
-  { id: "filters", labelKey: "tab_filters", icon: Filter },
-  { id: "templates", labelKey: "tab_templates", icon: LayoutTemplate },
+  { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
   { id: "general", labelKey: "tab_general", icon: Settings },
 ];
 

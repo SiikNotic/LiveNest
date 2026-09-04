@@ -4,8 +4,7 @@ import { ytPlayer } from "./lib/youtubePlayer";
 import { ChatView } from "./views/ChatView";
 import { ChannelsView } from "./views/ChannelsView";
 import { VoicesView } from "./views/VoicesView";
-import { FiltersView } from "./views/FiltersView";
-import { TemplatesView } from "./views/TemplatesView";
+import { ReadingView } from "./views/ReadingView";
 import { EventsView } from "./views/EventsView";
 import { MusicView } from "./views/MusicView";
 import { NotificationsView } from "./views/NotificationsView";
@@ -22,7 +21,7 @@ import { UsernameRequiredView } from "./views/UsernameRequiredView";
 import { useAuth } from "./lib/auth";
 import { Loader2 } from "lucide-react";
 
-export type TabId = "chat" | "channels" | "events" | "music" | "notifications" | "voices" | "filters" | "templates" | "general" | "account" | "admin";
+export type TabId = "chat" | "channels" | "events" | "music" | "notifications" | "voices" | "reading" | "general" | "account" | "admin";
 
 const MAIN_TABS: TabId[] = ["chat", "events", "music"];
 
@@ -235,8 +234,7 @@ export default function App() {
               {tab === "channels" && <ChannelsView />}
               {tab === "notifications" && <NotificationsView />}
               {tab === "voices" && <VoicesView />}
-              {tab === "filters" && <FiltersView />}
-              {tab === "templates" && <TemplatesView />}
+              {tab === "reading" && <ReadingView />}
               {tab === "general" && <GeneralView />}
             </div>
           </main>

@@ -42,6 +42,16 @@ export type Settings = {
   notif_voice_share: boolean;
   notif_voice_sub: boolean;
   music_blocked_keywords: string;
+  // Frases personalizadas para las alertas por voz — null/vacío = usar la
+  // frase por defecto del idioma actual (ver voice_alert_* en i18n.ts).
+  // Soportan {name}, {gift} y {count} según el evento.
+  voice_alert_gift_single: string | null;
+  voice_alert_gift_multi: string | null;
+  voice_alert_follow: string | null;
+  voice_alert_like_single: string | null;
+  voice_alert_like_multi: string | null;
+  voice_alert_share: string | null;
+  voice_alert_sub: string | null;
   voice_provider: "browser" | "google" | "elevenlabs" | "inworld";
   voice_random: boolean;
   theme: "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest";
