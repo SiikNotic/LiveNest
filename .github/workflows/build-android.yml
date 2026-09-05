@@ -28,6 +28,12 @@ permissions:
 
 jobs:
   build:
+    # Este workflow vive espejado en los dos repos (ver CLAUDE.md), pero la
+    # APK de Android solo tiene sentido publicarla desde uno — si no,
+    # quedan dos trenes de releases paralelos (SiikNotic/LiveNest y
+    # SiikNotic/livenest2) compitiendo por lo mismo. livenest2 es
+    # puramente la web.
+    if: github.repository == 'SiikNotic/LiveNest'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

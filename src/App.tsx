@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useStore } from "./lib/store";
 import { ytPlayer } from "./lib/youtubePlayer";
 import { ChatView } from "./views/ChatView";
@@ -18,6 +19,7 @@ import { UserPanelView } from "./views/UserPanelView";
 import { AdminView } from "./views/AdminView";
 import { ResetPasswordView } from "./views/ResetPasswordView";
 import { UsernameRequiredView } from "./views/UsernameRequiredView";
+import { LandingPage } from "./views/LandingPage";
 import { useAuth } from "./lib/auth";
 import { Loader2 } from "lucide-react";
 
@@ -28,6 +30,17 @@ const MAIN_TABS: TabId[] = ["chat", "events", "music"];
 export default function App() {
   const [tab, setTab] = useState<TabId>("chat");
   const { user, profile, loading, isAdmin, passwordRecovery } = useAuth();
+  // La landing (marketing) solo tiene sentido en la web — quien ya
+  // instaló la app nativa no necesita que le vendan LiveNest, va derecho
+  // al login. En la web, si la URL trae un hash de Supabase (link de
+  // recuperación vencido, o restos de un callback OAuth) también se salta
+  // — si no, ese error/token nunca llega a AuthView, que es quien sabe
+  // mostrarlo.
+  const [showAuth, setShowAuth] = useState(() => {
+    if (Capacitor.isNativePlatform()) return true;
+    if (typeof window !== "undefined" && /error=|access_token=/.test(window.location.hash)) return true;
+    return false;
+  });
   const loadSettings = useStore((s) => s.loadSettings);
   const loadFilters = useStore((s) => s.loadFilters);
   const loadTemplates = useStore((s) => s.loadTemplates);
@@ -172,6 +185,9 @@ export default function App() {
   // loadSettings()/loadFilters()/etc. nunca corren sin sesión. Ahora se
   // pide iniciar sesión o registrarse antes de ver cualquier otra cosa.
   if (!user) {
+    if (!showAuth) {
+      return <LandingPage onLaunch={() => setShowAuth(true)} />;
+    }
     return (
       <div className="min-h-screen flex flex-col">
         <AuthView />
