@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { useStore } from "../lib/store";
 import { useI18n, type TranslationKey } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -93,6 +94,11 @@ export function NotificationsView() {
   const { hasActiveLicense } = useAuth();
   const settings = useStore((s) => s.settings);
   const saveSettings = useStore((s) => s.saveSettings);
+  // El overlay es para pegar en OBS/Streamlabs — software de escritorio.
+  // En la app nativa (streamers transmitiendo desde el celular) no aplica
+  // para nada, así que ni se muestra: solo sonido y voz. Sigue completo
+  // en la web, que es donde tiene sentido.
+  const isNative = Capacitor.isNativePlatform();
 
   const [expandedEvent, setExpandedEvent] = useState<EventId | null>(null);
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
@@ -250,42 +256,45 @@ export function NotificationsView() {
       </div>
 
       {/* Setup del overlay — se hace una sola vez, antes de tocar los
-          interruptores por evento de más abajo. */}
-      <div className="card space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
-            <MonitorPlay className="w-5 h-5 text-primary" />
+          interruptores por evento de más abajo. Solo en la web: es para
+          pegar en OBS, software de escritorio. */}
+      {!isNative && (
+        <div className="card space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <MonitorPlay className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold">{t("notif_overlay_title")}</h2>
+              <p className="text-xs text-muted">{t("notif_overlay_subtitle")}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold">{t("notif_overlay_title")}</h2>
-            <p className="text-xs text-muted">{t("notif_overlay_subtitle")}</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              readOnly
+              value={overlayUrl}
+              onFocus={(e) => e.target.select()}
+              className="input flex-1 text-xs font-mono"
+            />
+            <button onClick={copyOverlayUrl} className="btn-ghost text-xs px-3 flex-shrink-0">
+              {overlayCopied ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {overlayCopied ? t("notif_overlay_copied") : t("notif_overlay_copy")}
+            </button>
+          </div>
+          <p className="text-[11px] text-muted">{t("notif_overlay_hint")}</p>
+          <div className="flex items-center justify-between gap-3 pt-1 border-t border-border">
+            <p className="text-[11px] text-muted flex-1">{t("notif_overlay_regenerate_hint")}</p>
+            <button onClick={regenerateOverlayToken} disabled={regenerating} className="btn-ghost text-xs px-3 flex-shrink-0 disabled:opacity-60">
+              {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {t("notif_overlay_regenerate")}
+            </button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            readOnly
-            value={overlayUrl}
-            onFocus={(e) => e.target.select()}
-            className="input flex-1 text-xs font-mono"
-          />
-          <button onClick={copyOverlayUrl} className="btn-ghost text-xs px-3 flex-shrink-0">
-            {overlayCopied ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {overlayCopied ? t("notif_overlay_copied") : t("notif_overlay_copy")}
-          </button>
-        </div>
-        <p className="text-[11px] text-muted">{t("notif_overlay_hint")}</p>
-        <div className="flex items-center justify-between gap-3 pt-1 border-t border-border">
-          <p className="text-[11px] text-muted flex-1">{t("notif_overlay_regenerate_hint")}</p>
-          <button onClick={regenerateOverlayToken} disabled={regenerating} className="btn-ghost text-xs px-3 flex-shrink-0 disabled:opacity-60">
-            {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            {t("notif_overlay_regenerate")}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* El corazón de la reorganización: una fila por evento, con sus
-          tres canales (sonido/voz/overlay) juntos adentro. */}
+          canales (sonido/voz, y overlay en la web) juntos adentro. */}
       <div className="space-y-2">
         {EVENT_DEFS.map((def) => {
           const Icon = def.icon;
@@ -293,7 +302,7 @@ export function NotificationsView() {
           const rawSound = settings[def.soundKey] as string;
           const isCustomSound = isCustomSoundUrl(rawSound);
           const voiceOn = settings[def.voiceKey] as boolean;
-          const overlayCfg = def.overlayType ? overlayConfig[def.overlayType] : null;
+          const overlayCfg = !isNative && def.overlayType ? overlayConfig[def.overlayType] : null;
 
           const soundOn = settings.notif_sound_enabled && rawSound !== "none";
           const voiceActuallyOn = settings.notif_voice_enabled && voiceOn;
@@ -317,7 +326,7 @@ export function NotificationsView() {
                     <div className="flex items-center gap-3 mt-0.5">
                       <Volume2 className={`w-3.5 h-3.5 ${soundOn ? "text-primary" : "text-muted opacity-30"}`} />
                       <Mic className={`w-3.5 h-3.5 ${voiceActuallyOn ? "text-accent" : "text-muted opacity-30"}`} />
-                      {def.overlayType && (
+                      {!isNative && def.overlayType && (
                         <MonitorPlay className={`w-3.5 h-3.5 ${overlayOn ? "text-pink-400" : "text-muted opacity-30"}`} />
                       )}
                     </div>
@@ -436,7 +445,8 @@ export function NotificationsView() {
                     )}
                   </div>
 
-                  {/* Overlay visual */}
+                  {/* Overlay visual — solo en la web, ver isNative arriba */}
+                  {!isNative && (
                   <div className="pt-3 border-t border-border">
                     <p className="label mb-1.5">{t("notif_channel_overlay_label")}</p>
                     {!def.overlayType || !overlayCfg ? (
@@ -596,6 +606,7 @@ export function NotificationsView() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               )}
             </div>
