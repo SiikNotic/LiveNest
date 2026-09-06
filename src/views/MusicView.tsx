@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { ytPlayer, type PlayerState } from "../lib/youtubePlayer";
 import { shortenDefaultUsername } from "../lib/voiceManager";
 import {
-  Music, Play, Pause, SkipForward, ListMusic, X, Youtube, Clock,
+  Music, Play, Pause, SkipForward, ListMusic, ListPlus, X, Youtube, Clock,
   ChevronDown, ChevronUp, Settings2, Plus, Link2, AlertCircle, Volume2, Crown,
   Loader2, CheckCircle2, Repeat, Trash2,
 } from "lucide-react";
@@ -61,6 +61,15 @@ export function MusicView() {
   const loadSongQueue = useStore((s) => s.loadSongQueue);
   const addSongByUrl = useStore((s) => s.addSongByUrl);
   const addPlaylistByUrl = useStore((s) => s.addPlaylistByUrl);
+  const playlists = useStore((s) => s.playlists);
+  const playlistItems = useStore((s) => s.playlistItems);
+  const loadPlaylists = useStore((s) => s.loadPlaylists);
+  const createPlaylist = useStore((s) => s.createPlaylist);
+  const deletePlaylist = useStore((s) => s.deletePlaylist);
+  const loadPlaylistItems = useStore((s) => s.loadPlaylistItems);
+  const addSongToPlaylist = useStore((s) => s.addSongToPlaylist);
+  const removeSongFromPlaylist = useStore((s) => s.removeSongFromPlaylist);
+  const playPlaylistNow = useStore((s) => s.playPlaylistNow);
   const { t } = useI18n();
 
   const [showHistory, setShowHistory] = useState(false);
@@ -75,6 +84,12 @@ export function MusicView() {
   const [fallbackInput, setFallbackInput] = useState("");
   const [fallbackError, setFallbackError] = useState<string | null>(null);
   const [savingFallback, setSavingFallback] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [addedFeedback, setAddedFeedback] = useState<string | null>(null);
+  const [showPlaylists, setShowPlaylists] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
+  const [expandedPlaylistId, setExpandedPlaylistId] = useState<string | null>(null);
 
   useEffect(() => {
     return ytPlayer.subscribe(setPlayerState);
@@ -89,6 +104,12 @@ export function MusicView() {
   useEffect(() => {
     loadSongQueue();
   }, [loadSongQueue]);
+
+  useEffect(() => {
+    if (!addedFeedback) return;
+    const timer = setTimeout(() => setAddedFeedback(null), 2500);
+    return () => clearTimeout(timer);
+  }, [addedFeedback]);
 
   const togglePlay = useCallback(() => {
     ytPlayer.togglePlay();
@@ -176,6 +197,29 @@ export function MusicView() {
 
   function handleRemoveFallbackPlaylist() {
     saveSettings({ fallback_playlist_id: null, fallback_playlist_enabled: false });
+  }
+
+  async function handleAddCurrentSongToPlaylist(playlistId: string, playlistName: string) {
+    if (!currentSong?.video_id) return;
+    await addSongToPlaylist(playlistId, {
+      videoId: currentSong.video_id,
+      title: currentSong.video_title,
+      channel: currentSong.video_channel,
+    });
+    setAddedFeedback(playlistName);
+    setShowAddToPlaylist(false);
+  }
+
+  async function handleCreatePlaylist() {
+    const name = newPlaylistName.trim();
+    if (!name) return;
+    setCreatingPlaylist(true);
+    try {
+      await createPlaylist(name);
+      setNewPlaylistName("");
+    } finally {
+      setCreatingPlaylist(false);
+    }
   }
 
   async function loadHistory() {
@@ -286,6 +330,40 @@ export function MusicView() {
                       <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
                     )}
                   </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        if (!showAddToPlaylist) loadPlaylists();
+                        setShowAddToPlaylist(!showAddToPlaylist);
+                      }}
+                      className="w-10 h-10 rounded-full bg-bg-hover flex items-center justify-center text-muted hover:text-accent hover:bg-accent/10 transition-colors card-press"
+                      title={t("music_add_to_playlist")}
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
+                    {showAddToPlaylist && (
+                      <div className="absolute z-10 bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 card p-2 shadow-xl">
+                        <p className="text-[11px] font-bold text-muted-soft px-1 mb-1.5">
+                          {t("music_add_to_playlist_panel_title")}
+                        </p>
+                        {playlists.length === 0 ? (
+                          <p className="text-xs text-muted px-1 py-2">{t("music_add_to_playlist_none")}</p>
+                        ) : (
+                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                            {playlists.map((pl) => (
+                              <button
+                                key={pl.id}
+                                onClick={() => handleAddCurrentSongToPlaylist(pl.id, pl.name)}
+                                className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-text-soft hover:bg-bg-hover transition-colors truncate"
+                              >
+                                {pl.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={stopCurrent}
                     className="w-10 h-10 rounded-full bg-bg-hover flex items-center justify-center text-muted hover:text-error-400 hover:bg-error/10 transition-colors card-press"
@@ -294,6 +372,12 @@ export function MusicView() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+
+                {addedFeedback && (
+                  <p className="text-[11px] text-success-400 text-center -mt-1 mb-3">
+                    {t("music_added_to_playlist", { name: addedFeedback })}
+                  </p>
+                )}
 
                 <div className="flex items-center gap-2 text-[11px] text-muted tabular-nums mb-3">
                   <span className="w-8 text-right">{fmtTime(playerState.progress)}</span>
@@ -493,6 +577,103 @@ export function MusicView() {
                       <p className="text-sm truncate">{song.video_title ?? song.query}</p>
                       <p className="text-xs text-muted">@{shortenDefaultUsername(song.username)}</p>
                     </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              if (!showPlaylists) loadPlaylists();
+              setShowPlaylists(!showPlaylists);
+            }}
+            className="text-xs text-muted hover:text-text-soft transition-colors flex items-center gap-1"
+          >
+            <ListMusic className="w-3.5 h-3.5" />
+            {showPlaylists ? t("music_playlists_hide") : t("music_playlists_title")}
+          </button>
+
+          {showPlaylists && (
+            <div className="space-y-2 animate-slide-down">
+              <div className="card flex gap-2">
+                <input
+                  type="text"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreatePlaylist()}
+                  placeholder={t("music_playlist_new_placeholder")}
+                  className="input flex-1 text-xs"
+                />
+                <button
+                  onClick={handleCreatePlaylist}
+                  disabled={creatingPlaylist || !newPlaylistName.trim()}
+                  className="btn-ghost text-xs px-3 flex-shrink-0 disabled:opacity-60"
+                >
+                  {creatingPlaylist ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("music_playlist_create")}
+                </button>
+              </div>
+
+              {playlists.length === 0 ? (
+                <p className="text-xs text-muted text-center py-4">{t("music_playlists_empty")}</p>
+              ) : (
+                playlists.map((pl) => (
+                  <div key={pl.id} className="card">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const next = expandedPlaylistId === pl.id ? null : pl.id;
+                          setExpandedPlaylistId(next);
+                          if (next && !playlistItems[pl.id]) loadPlaylistItems(pl.id);
+                        }}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                      >
+                        <span className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0">
+                          <ListMusic className="w-4 h-4 text-accent" />
+                        </span>
+                        <span className="min-w-0">
+                          <p className="text-sm font-medium truncate">{pl.name}</p>
+                          <p className="text-xs text-muted">{t("music_playlist_song_count", { n: pl.song_count ?? 0 })}</p>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => playPlaylistNow(pl.id, t("music_you"))}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-primary hover:bg-primary/10 transition-colors flex-shrink-0"
+                        title={t("music_playlist_play")}
+                      >
+                        <Play className="w-3.5 h-3.5" fill="currentColor" />
+                      </button>
+                      <button
+                        onClick={() => deletePlaylist(pl.id)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-error-400 hover:bg-error/10 transition-colors flex-shrink-0"
+                        title={t("music_playlist_delete")}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {expandedPlaylistId === pl.id && (
+                      <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                        {(playlistItems[pl.id] ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-soft text-center py-2">{t("music_playlist_no_songs")}</p>
+                        ) : (
+                          (playlistItems[pl.id] ?? []).map((item) => (
+                            <div key={item.id} className="flex items-center gap-2">
+                              <p className="text-xs text-text-soft truncate flex-1">
+                                {item.video_title ?? item.video_id}
+                                {item.video_channel ? <span className="text-muted-soft"> · {item.video_channel}</span> : null}
+                              </p>
+                              <button
+                                onClick={() => removeSongFromPlaylist(pl.id, item.id)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-error-400 flex-shrink-0 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               )}

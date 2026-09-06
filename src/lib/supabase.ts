@@ -116,6 +116,30 @@ export type LiveEvent = {
   created_at: string;
 };
 
+/** Playlist propia del usuario (estilo Spotify: se arma a mano agregando
+ *  canciones desde el reproductor y se reproduce cuando quiera) — no debe
+ *  confundirse con fallback_playlist_id, que apunta a una playlist YA
+ *  EXISTENTE en YouTube en vez de una armada dentro de la app. */
+export type MusicPlaylist = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  // Solo presente cuando viene de loadPlaylists() (select con el count de
+  // music_playlist_items embebido) — no es una columna real de la tabla.
+  song_count?: number;
+};
+
+export type MusicPlaylistItem = {
+  id: string;
+  playlist_id: string;
+  user_id: string;
+  video_id: string;
+  video_title: string | null;
+  video_channel: string | null;
+  created_at: string;
+};
+
 export type SongRequestStatus = "queued" | "playing" | "played" | "skipped" | "not_found" | "blocked";
 
 export type SongRequest = {

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { supabase, type ChatMessage, type FilterRule, type Settings, type Template, type LiveEvent, type SongRequest } from "./supabase";
+import { supabase, type ChatMessage, type FilterRule, type Settings, type Template, type LiveEvent, type SongRequest, type MusicPlaylist, type MusicPlaylistItem } from "./supabase";
 import { voiceManager, cleanNameForSpeech } from "./voiceManager";
 import { soundManager, isCustomSoundUrl } from "./soundManager";
 import { applyFilters, applyTemplate } from "./eventProcessor";
@@ -36,6 +36,12 @@ type State = {
   events: LiveEvent[];
   songQueue: SongRequest[];
   currentSong: SongRequest | null;
+  // Playlists propias del usuario (estilo Spotify) y sus canciones,
+  // cargadas bajo demanda — ver loadPlaylists/loadPlaylistItems. items se
+  // guarda por playlistId para no pedirle a la base la lista completa de
+  // cada una hasta que el usuario la despliega o le da play.
+  playlists: MusicPlaylist[];
+  playlistItems: Record<string, MusicPlaylistItem[]>;
   settings: Settings | null;
   filters: FilterRule[];
   templates: Template[];
@@ -83,12 +89,30 @@ type State = {
   processQueue: () => Promise<void>;
   addEvent: (type: LiveEvent["type"], username: string, detail?: string, count?: number, nickname?: string) => void;
   handleSongCommand: (username: string, query: string) => Promise<void>;
-  addSongByUrl: (videoId: string, username: string, isFallback?: boolean) => Promise<void>;
+  addSongByUrl: (
+    videoId: string,
+    username: string,
+    isFallback?: boolean,
+    // Evita volver a pedirle título/canal a oEmbed cuando ya se conocen
+    // (ej. una canción que viene de una playlist propia, guardada con su
+    // título la primera vez que se agregó) — ver playPlaylistNow.
+    preResolved?: { title: string | null; channel: string | null },
+  ) => Promise<void>;
   addPlaylistByUrl: (playlistId: string, username: string) => Promise<{ added: number; total: number }>;
   // Si la cola está del todo vacía (nada sonando, nada esperando) y hay
   // una lista de respaldo activada, pide el próximo tema de esa lista —
   // no-op en cualquier otro caso. Ver el efecto en App.tsx que la llama.
   maybeQueueFallbackSong: () => Promise<void>;
+  loadPlaylists: () => Promise<void>;
+  createPlaylist: (name: string) => Promise<void>;
+  deletePlaylist: (id: string) => Promise<void>;
+  loadPlaylistItems: (playlistId: string) => Promise<void>;
+  addSongToPlaylist: (playlistId: string, video: { videoId: string; title: string | null; channel: string | null }) => Promise<void>;
+  removeSongFromPlaylist: (playlistId: string, itemId: string) => Promise<void>;
+  // Encola de una toda la playlist guardada (respetando max_song_queue,
+  // igual que addPlaylistByUrl) — "reproducir cuando quiera" estilo
+  // Spotify, sin depender de que la cola esté vacía.
+  playPlaylistNow: (playlistId: string, username: string) => Promise<void>;
   updateSongStatus: (id: string, status: SongRequest["status"], extra?: Partial<SongRequest>) => Promise<void>;
   skipSong: () => Promise<void>;
   stopMusic: () => Promise<void>;
@@ -213,6 +237,8 @@ export const useStore = create<State>((set, get) => ({
   events: [],
   songQueue: [],
   currentSong: null,
+  playlists: [],
+  playlistItems: {},
   settings: null,
   filters: [],
   templates: [],
@@ -887,23 +913,25 @@ export const useStore = create<State>((set, get) => ({
     await get().loadSongQueue();
   },
 
-  addSongByUrl: async (videoId: string, username: string, isFallback = false) => {
+  addSongByUrl: async (videoId: string, username: string, isFallback = false, preResolved) => {
     const state = get();
     const maxQueue = state.settings?.max_song_queue ?? 20;
     if (state.songQueue.length >= maxQueue) return;
 
-    // Obtener título y canal del video usando oEmbed (sin API key)
-    let title: string | null = null;
-    let channel: string | null = null;
-    try {
-      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-      const res = await fetch(oembedUrl);
-      if (res.ok) {
-        const data = await res.json();
-        title = data.title ?? null;
-        channel = data.author_name ?? null;
-      }
-    } catch {}
+    let title: string | null = preResolved?.title ?? null;
+    let channel: string | null = preResolved?.channel ?? null;
+    if (!preResolved) {
+      // Obtener título y canal del video usando oEmbed (sin API key)
+      try {
+        const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+        const res = await fetch(oembedUrl);
+        if (res.ok) {
+          const data = await res.json();
+          title = data.title ?? null;
+          channel = data.author_name ?? null;
+        }
+      } catch {}
+    }
 
     const { data } = await supabase.from("song_requests").insert({
       username,
@@ -968,6 +996,91 @@ export const useStore = create<State>((set, get) => ({
     const videoId = cache.videoIds[cache.nextIndex % cache.videoIds.length];
     cache.nextIndex++;
     await get().addSongByUrl(videoId, useI18n.getState().t("music_fallback_username"), true);
+  },
+
+  loadPlaylists: async () => {
+    // El count embebido evita una consulta aparte por playlist solo para
+    // mostrar "cuántos temas tiene" en la lista.
+    const { data, error } = await supabase
+      .from("music_playlists")
+      .select("*, music_playlist_items(count)")
+      .order("created_at", { ascending: false });
+    if (error || !data) return;
+    const playlists = (data as unknown as (MusicPlaylist & { music_playlist_items?: { count: number }[] })[]).map((p) => ({
+      id: p.id,
+      user_id: p.user_id,
+      name: p.name,
+      created_at: p.created_at,
+      song_count: p.music_playlist_items?.[0]?.count ?? 0,
+    }));
+    set({ playlists });
+  },
+
+  createPlaylist: async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const { data } = await supabase.from("music_playlists").insert({ name: trimmed }).select("*").single();
+    if (data) {
+      set((s) => ({ playlists: [{ ...(data as MusicPlaylist), song_count: 0 }, ...s.playlists] }));
+    }
+  },
+
+  deletePlaylist: async (id: string) => {
+    await supabase.from("music_playlists").delete().eq("id", id);
+    set((s) => {
+      const restItems = { ...s.playlistItems };
+      delete restItems[id];
+      return { playlists: s.playlists.filter((p) => p.id !== id), playlistItems: restItems };
+    });
+  },
+
+  loadPlaylistItems: async (playlistId: string) => {
+    const { data } = await supabase
+      .from("music_playlist_items")
+      .select("*")
+      .eq("playlist_id", playlistId)
+      .order("created_at", { ascending: true });
+    set((s) => ({ playlistItems: { ...s.playlistItems, [playlistId]: (data as MusicPlaylistItem[]) ?? [] } }));
+  },
+
+  addSongToPlaylist: async (playlistId: string, video: { videoId: string; title: string | null; channel: string | null }) => {
+    const { data } = await supabase.from("music_playlist_items").insert({
+      playlist_id: playlistId,
+      video_id: video.videoId,
+      video_title: video.title,
+      video_channel: video.channel,
+    }).select("*").single();
+    if (!data) return;
+    const item = data as MusicPlaylistItem;
+    set((s) => ({
+      playlistItems: s.playlistItems[playlistId]
+        ? { ...s.playlistItems, [playlistId]: [...s.playlistItems[playlistId], item] }
+        : s.playlistItems,
+      playlists: s.playlists.map((p) => (p.id === playlistId ? { ...p, song_count: (p.song_count ?? 0) + 1 } : p)),
+    }));
+  },
+
+  removeSongFromPlaylist: async (playlistId: string, itemId: string) => {
+    await supabase.from("music_playlist_items").delete().eq("id", itemId);
+    set((s) => ({
+      playlistItems: { ...s.playlistItems, [playlistId]: (s.playlistItems[playlistId] ?? []).filter((i) => i.id !== itemId) },
+      playlists: s.playlists.map((p) => (p.id === playlistId ? { ...p, song_count: Math.max(0, (p.song_count ?? 1) - 1) } : p)),
+    }));
+  },
+
+  playPlaylistNow: async (playlistId: string, username: string) => {
+    let items = get().playlistItems[playlistId];
+    if (!items) {
+      await get().loadPlaylistItems(playlistId);
+      items = get().playlistItems[playlistId] ?? [];
+    }
+    // Uno por uno, igual que addPlaylistByUrl — cada addSongByUrl ya
+    // revisa el límite de la cola antes de insertar.
+    for (const item of items) {
+      const maxQueue = get().settings?.max_song_queue ?? 20;
+      if (get().songQueue.length >= maxQueue) break;
+      await get().addSongByUrl(item.video_id, username, false, { title: item.video_title, channel: item.video_channel });
+    }
   },
 
   setMembership: (hasActiveLicense: boolean) => set({ hasActiveLicense }),
