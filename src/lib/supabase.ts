@@ -28,6 +28,11 @@ export type Settings = {
   music_volume: number;
   music_autoplay: boolean;
   max_song_queue: number;
+  // Lista de YouTube que suena sola cuando la cola de pedidos está
+  // vacía — ver maybeQueueFallbackSong() en store.ts. null/desactivada =
+  // se queda en silencio cuando nadie pide nada, como antes.
+  fallback_playlist_id: string | null;
+  fallback_playlist_enabled: boolean;
   notif_sound_enabled: boolean;
   notif_sound_type: string;
   notif_volume: number;
@@ -122,6 +127,7 @@ export type SongRequest = {
   video_channel: string | null;
   status: SongRequestStatus;
   created_at: string;
+  is_fallback: boolean;
 };
 
 /**

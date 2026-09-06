@@ -69,6 +69,8 @@ export default function App() {
   const currentSong = useStore((s) => s.currentSong);
   const songQueue = useStore((s) => s.songQueue);
   const updateSongStatus = useStore((s) => s.updateSongStatus);
+  const connectionStatus = useStore((s) => s.status);
+  const maybeQueueFallbackSong = useStore((s) => s.maybeQueueFallbackSong);
 
   useEffect(() => {
     // Red de seguridad para cuando la cola tiene canciones pero ninguna
@@ -81,8 +83,16 @@ export default function App() {
     if (!settings?.music_enabled || !settings?.music_autoplay) return;
     if (!currentSong && songQueue.length > 0) {
       updateSongStatus(songQueue[0].id, "playing");
+      return;
     }
-  }, [songQueue, currentSong, settings?.music_enabled, settings?.music_autoplay, updateSongStatus]);
+    // Cola del todo vacía — si hay una lista de respaldo activada, que
+    // suene algo de ahí en vez de quedarse en silencio. Solo mientras se
+    // está conectado de verdad: sin esto, la música arrancaría sola por
+    // estar sentado en Ajustes/Música antes de siquiera transmitir.
+    if (!currentSong && songQueue.length === 0 && connectionStatus === "connected") {
+      maybeQueueFallbackSong();
+    }
+  }, [songQueue, currentSong, settings?.music_enabled, settings?.music_autoplay, connectionStatus, updateSongStatus, maybeQueueFallbackSong]);
 
   useEffect(() => {
     const vid = currentSong?.video_id ?? null;

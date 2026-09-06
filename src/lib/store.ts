@@ -83,8 +83,12 @@ type State = {
   processQueue: () => Promise<void>;
   addEvent: (type: LiveEvent["type"], username: string, detail?: string, count?: number, nickname?: string) => void;
   handleSongCommand: (username: string, query: string) => Promise<void>;
-  addSongByUrl: (videoId: string, username: string) => Promise<void>;
+  addSongByUrl: (videoId: string, username: string, isFallback?: boolean) => Promise<void>;
   addPlaylistByUrl: (playlistId: string, username: string) => Promise<{ added: number; total: number }>;
+  // Si la cola está del todo vacía (nada sonando, nada esperando) y hay
+  // una lista de respaldo activada, pide el próximo tema de esa lista —
+  // no-op en cualquier otro caso. Ver el efecto en App.tsx que la llama.
+  maybeQueueFallbackSong: () => Promise<void>;
   updateSongStatus: (id: string, status: SongRequest["status"], extra?: Partial<SongRequest>) => Promise<void>;
   skipSong: () => Promise<void>;
   stopMusic: () => Promise<void>;
@@ -116,6 +120,37 @@ let pendingSave: Partial<Settings> | null = null;
 // costo de un join de Realtime en cada evento.
 let overlayChannel: ReturnType<typeof supabase.channel> | null = null;
 let overlayChannelToken: string | null = null;
+
+// Video IDs de la lista de respaldo ya resueltos, para no volver a pedirle
+// a la API de YouTube la playlist entera cada vez que se necesita un tema
+// más (ver maybeQueueFallbackSong) — solo se vuelve a pedir si cambia el
+// ID de playlist guardado. nextIndex avanza y da la vuelta sola (rotación
+// simple, sin guardar en la base en qué tema quedó — cada sesión nueva
+// arranca del principio de la lista, que es un default razonable).
+let fallbackPlaylistCache: { playlistId: string; videoIds: string[]; nextIndex: number } | null = null;
+
+/** Resuelve una playlist de YouTube a sus video IDs vía la Edge Function
+ *  `youtube-playlist` (API oficial, key server-side) — compartida por
+ *  addPlaylistByUrl (agregar todo de una a la cola) y
+ *  maybeQueueFallbackSong (pedir temas de a uno cuando la cola se vacía). */
+async function fetchYoutubePlaylistVideoIds(playlistId: string): Promise<string[]> {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-playlist`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ playlistId }),
+    });
+    if (!res.ok) return [];
+    const result = await res.json().catch(() => ({}));
+    return Array.isArray(result?.videoIds) ? result.videoIds : [];
+  } catch {
+    return [];
+  }
+}
 
 function openOverlayChannel(token: string | null | undefined) {
   if (!token || overlayChannelToken === token) return;
@@ -852,7 +887,7 @@ export const useStore = create<State>((set, get) => ({
     await get().loadSongQueue();
   },
 
-  addSongByUrl: async (videoId: string, username: string) => {
+  addSongByUrl: async (videoId: string, username: string, isFallback = false) => {
     const state = get();
     const maxQueue = state.settings?.max_song_queue ?? 20;
     if (state.songQueue.length >= maxQueue) return;
@@ -877,6 +912,7 @@ export const useStore = create<State>((set, get) => ({
       video_title: title,
       video_channel: channel,
       status: "queued",
+      is_fallback: isFallback,
     }).select("*").single();
 
     if (data) {
@@ -893,18 +929,7 @@ export const useStore = create<State>((set, get) => ({
   },
 
   addPlaylistByUrl: async (playlistId: string, username: string) => {
-    const searchUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-playlist`;
-    const res = await fetch(searchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ playlistId }),
-    });
-    if (!res.ok) return { added: 0, total: 0 };
-    const result = await res.json().catch(() => ({}));
-    const videoIds: string[] = Array.isArray(result?.videoIds) ? result.videoIds : [];
+    const videoIds = await fetchYoutubePlaylistVideoIds(playlistId);
     if (videoIds.length === 0) return { added: 0, total: 0 };
 
     // Uno por uno (no en paralelo) — cada addSongByUrl ya revisa el límite
@@ -918,6 +943,31 @@ export const useStore = create<State>((set, get) => ({
       added++;
     }
     return { added, total: videoIds.length };
+  },
+
+  maybeQueueFallbackSong: async () => {
+    const s = get().settings;
+    if (!s?.music_enabled || !s?.music_autoplay) return;
+    if (!s.fallback_playlist_enabled || !s.fallback_playlist_id) return;
+    // Solo cuando está DEL TODO vacía — un pedido real (aunque sea uno
+    // solo, en cola sin sonar todavía) nunca se pisa con un tema de
+    // respaldo antes de tiempo.
+    if (get().currentSong || get().songQueue.length > 0) return;
+
+    if (!fallbackPlaylistCache || fallbackPlaylistCache.playlistId !== s.fallback_playlist_id) {
+      const videoIds = await fetchYoutubePlaylistVideoIds(s.fallback_playlist_id);
+      if (videoIds.length === 0) return;
+      fallbackPlaylistCache = { playlistId: s.fallback_playlist_id, videoIds, nextIndex: 0 };
+    }
+
+    // Volver a chequear después del fetch — pudo haber llegado un pedido
+    // real (o cambiar el ajuste) mientras esperábamos la respuesta.
+    if (get().currentSong || get().songQueue.length > 0) return;
+
+    const cache = fallbackPlaylistCache;
+    const videoId = cache.videoIds[cache.nextIndex % cache.videoIds.length];
+    cache.nextIndex++;
+    await get().addSongByUrl(videoId, useI18n.getState().t("music_fallback_username"), true);
   },
 
   setMembership: (hasActiveLicense: boolean) => set({ hasActiveLicense }),

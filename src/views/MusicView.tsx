@@ -8,7 +8,7 @@ import { shortenDefaultUsername } from "../lib/voiceManager";
 import {
   Music, Play, Pause, SkipForward, ListMusic, X, Youtube, Clock,
   ChevronDown, ChevronUp, Settings2, Plus, Link2, AlertCircle, Volume2, Crown,
-  Loader2, CheckCircle2,
+  Loader2, CheckCircle2, Repeat, Trash2,
 } from "lucide-react";
 import type { SongRequest } from "../lib/supabase";
 
@@ -35,6 +35,20 @@ function extractPlaylistId(input: string): string | null {
   return m ? m[1] : null;
 }
 
+// Más permisivo que extractPlaylistId de arriba a propósito: esa exige
+// /playlist en la URL para no confundir "pedir un video suelto que trae
+// &list= de arrastre" con "quiero agregar la playlist entera ahora". Acá
+// no hay esa ambigüedad — es el campo de "guardar MI lista de respaldo",
+// así que alcanza con encontrar list= en cualquier URL de YouTube, o
+// aceptar directamente un ID pegado sin URL alrededor.
+function extractPlaylistIdLoose(input: string): string | null {
+  const trimmed = input.trim();
+  const m = trimmed.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,64}$/.test(trimmed)) return trimmed;
+  return null;
+}
+
 export function MusicView() {
   const { hasActiveLicense } = useAuth();
   const settings = useStore((s) => s.settings);
@@ -58,6 +72,9 @@ export function MusicView() {
   const [addingPlaylist, setAddingPlaylist] = useState(false);
   const [history, setHistory] = useState<SongRequest[]>([]);
   const [playerState, setPlayerState] = useState<PlayerState>(ytPlayer.getState());
+  const [fallbackInput, setFallbackInput] = useState("");
+  const [fallbackError, setFallbackError] = useState<string | null>(null);
+  const [savingFallback, setSavingFallback] = useState(false);
 
   useEffect(() => {
     return ytPlayer.subscribe(setPlayerState);
@@ -137,6 +154,28 @@ export function MusicView() {
     } finally {
       setAddingSong(false);
     }
+  }
+
+  async function handleSaveFallbackPlaylist() {
+    const input = fallbackInput.trim();
+    if (!input) return;
+    const playlistId = extractPlaylistIdLoose(input);
+    if (!playlistId) {
+      setFallbackError(t("music_fallback_invalid"));
+      return;
+    }
+    setFallbackError(null);
+    setSavingFallback(true);
+    try {
+      await saveSettings({ fallback_playlist_id: playlistId, fallback_playlist_enabled: true });
+      setFallbackInput("");
+    } finally {
+      setSavingFallback(false);
+    }
+  }
+
+  function handleRemoveFallbackPlaylist() {
+    saveSettings({ fallback_playlist_id: null, fallback_playlist_enabled: false });
   }
 
   async function loadHistory() {
@@ -539,6 +578,63 @@ export function MusicView() {
                   checked={settings.music_autoplay}
                   onChange={() => saveSettings({ music_autoplay: !settings.music_autoplay })}
                 />
+              </div>
+
+              <div className="pt-1 border-t border-border">
+                <label className="label flex items-center gap-1.5 mb-1">
+                  <Repeat className="w-3.5 h-3.5 text-accent" />
+                  {t("music_fallback_title")}
+                </label>
+                <p className="text-[11px] text-muted-soft mb-2.5">{t("music_fallback_hint")}</p>
+
+                {settings.fallback_playlist_id ? (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <a
+                        href={`https://www.youtube.com/playlist?list=${settings.fallback_playlist_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary hover:underline truncate flex-1 flex items-center gap-1.5"
+                      >
+                        <Youtube className="w-3.5 h-3.5 flex-shrink-0" />
+                        {t("music_fallback_saved")}
+                      </a>
+                      <button
+                        onClick={handleRemoveFallbackPlaylist}
+                        className="w-8 h-8 rounded-lg bg-bg-soft border border-border text-muted hover:text-red-400 flex items-center justify-center transition-colors flex-shrink-0"
+                        title={t("music_fallback_remove")}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-text-soft">{t("music_fallback_enabled")}</span>
+                      <Toggle
+                        checked={settings.fallback_playlist_enabled}
+                        onChange={() => saveSettings({ fallback_playlist_enabled: !settings.fallback_playlist_enabled })}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={fallbackInput}
+                      onChange={(e) => { setFallbackInput(e.target.value); setFallbackError(null); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleSaveFallbackPlaylist()}
+                      placeholder={t("music_fallback_placeholder")}
+                      className="input flex-1 text-xs"
+                    />
+                    <button
+                      onClick={handleSaveFallbackPlaylist}
+                      disabled={savingFallback || !fallbackInput.trim()}
+                      className="btn-ghost text-xs px-3 flex-shrink-0 disabled:opacity-60"
+                    >
+                      {savingFallback ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("music_fallback_save")}
+                    </button>
+                  </div>
+                )}
+                {fallbackError && <p className="text-[11px] text-red-400 mt-1.5">{fallbackError}</p>}
               </div>
 
               <div>
