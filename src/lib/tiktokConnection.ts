@@ -2,7 +2,7 @@ import { useI18n } from "./i18n";
 
 export type TikTokEvent =
   | { type: "chat"; username: string; nickname?: string; avatar?: string; message: string; userId?: string; timestamp?: number }
-  | { type: "gift"; username: string; nickname?: string; avatar?: string; giftName: string; count: number }
+  | { type: "gift"; username: string; nickname?: string; avatar?: string; giftName: string; giftImage?: string; count: number }
   | { type: "like"; username: string; nickname?: string; avatar?: string; count: number }
   | { type: "viewer"; count: number }
   | { type: "follow"; username: string; nickname?: string; avatar?: string }
@@ -326,7 +326,7 @@ export class TikTokConnection {
    *  mismo usuario. */
   private pendingGiftCombos = new Map<
     string,
-    { count: number; giftName: string; username: string; nickname?: string; avatar?: string; timer: ReturnType<typeof setTimeout> }
+    { count: number; giftName: string; giftImage?: string; username: string; nickname?: string; avatar?: string; timer: ReturnType<typeof setTimeout> }
   >();
   // Cuánto esperar tras el último golpe de una racha sin confirmación
   // explícita de que terminó, antes de anunciarla igual — así nunca se
@@ -335,7 +335,7 @@ export class TikTokConnection {
 
   private handleGiftMessage(info: {
     username: string; nickname?: string; avatar?: string;
-    giftName: string; giftId: string; count: number; repeatEnd: boolean;
+    giftName: string; giftImage?: string; giftId: string; count: number; repeatEnd: boolean;
   }) {
     const key = `${info.username}|${info.giftId}`;
     const existing = this.pendingGiftCombos.get(key);
@@ -350,6 +350,7 @@ export class TikTokConnection {
         nickname: info.nickname,
         avatar: info.avatar,
         giftName: info.giftName,
+        giftImage: info.giftImage,
         count: info.count,
       };
       if (!this.isDuplicate(event)) this.handlers.onEvent?.(event);
@@ -363,6 +364,7 @@ export class TikTokConnection {
     this.pendingGiftCombos.set(key, {
       count: info.count,
       giftName: info.giftName,
+      giftImage: info.giftImage,
       username: info.username,
       nickname: info.nickname,
       avatar: info.avatar,
@@ -380,6 +382,7 @@ export class TikTokConnection {
       nickname: entry.nickname,
       avatar: entry.avatar,
       giftName: entry.giftName,
+      giftImage: entry.giftImage,
       count: entry.count,
     };
     if (!this.isDuplicate(event)) this.handlers.onEvent?.(event);
@@ -510,7 +513,7 @@ export class TikTokConnection {
 // racha que un evento normalizado de un solo golpe no puede expresar.
 function parseGiftMessage(msg: unknown): {
   username: string; nickname?: string; avatar?: string;
-  giftName: string; giftId: string; count: number; repeatEnd: boolean;
+  giftName: string; giftImage?: string; giftId: string; count: number; repeatEnd: boolean;
 } | null {
   if (typeof msg !== "object" || msg === null) return null;
   const m = msg as Record<string, unknown>;
@@ -541,6 +544,7 @@ function parseGiftMessage(msg: unknown): {
     nickname: extractNickname(data, m) ?? undefined,
     avatar: extractAvatar(data, m) ?? undefined,
     giftName: typeof giftNameRaw === "string" && giftNameRaw.trim() ? giftNameRaw.trim() : "regalo",
+    giftImage: extractGiftImage(giftObj, data) ?? undefined,
     giftId: giftIdRaw !== undefined && giftIdRaw !== null ? String(giftIdRaw) : "unknown",
     count,
     repeatEnd,
@@ -659,6 +663,32 @@ function firstUrlFromList(val: unknown): string | null {
     const obj = val as Record<string, unknown>;
     const list = obj.urlList ?? obj.url_list;
     if (Array.isArray(list) && typeof list[0] === "string") return list[0] as string;
+  }
+  return null;
+}
+
+// Imagen del regalo puntual que mandaron (ej. el ícono de la rosa) — para
+// mostrarla tal cual en la alerta visual de OBS en vez de un ícono
+// genérico. Best-effort: distintos esquemas de Euler Stream/TikTok anidan
+// esto de formas distintas, y no hay forma de confirmar cuál usa la cuenta
+// de verdad sin probarlo contra un directo real — si ninguna variante
+// calza, se devuelve null y el overlay cae al ícono/imagen propia.
+function extractGiftImage(giftObj: Record<string, unknown> | undefined, data: Record<string, unknown>): string | null {
+  const candidates = [
+    giftObj?.image,
+    giftObj?.icon,
+    giftObj?.giftPictureUrl,
+    giftObj?.gift_picture_url,
+    giftObj?.imageUrl,
+    giftObj?.image_url,
+    data.giftPictureUrl,
+    data.gift_picture_url,
+    data.giftImage,
+    data.gift_image,
+  ];
+  for (const c of candidates) {
+    const url = firstUrlFromList(c);
+    if (url) return url;
   }
   return null;
 }

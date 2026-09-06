@@ -7,6 +7,8 @@ import { TikTokConnection, checkChannelLive, type TikTokEvent, type ConnectionSt
 import { ytPlayer } from "./youtubePlayer";
 import { useI18n, type TranslationKey } from "./i18n";
 import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
+import type { OverlayEventType } from "./overlayConfig";
+import { fillAlertPhrase, resolveOverlayAlert } from "./alertPhrase";
 
 const MAX_MESSAGES = 100;
 const MAX_EVENTS = 200;
@@ -24,24 +26,6 @@ const TTS_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function isTtsCycleStale(cycleStart: string): boolean {
   return Date.now() - new Date(cycleStart).getTime() >= TTS_CYCLE_MS;
-}
-
-/** Frase que lee la voz para una alerta (regalo/follow/like/share/sub):
- *  usa la que la persona haya escrito en Lectura si hay una, si no la de
- *  siempre según el idioma. Mismo patrón de placeholders {name}/{gift}/
- *  {count} en ambos casos, para que da lo mismo cuál se use. */
-function fillAlertPhrase(
-  custom: string | null | undefined,
-  fallbackKey: TranslationKey,
-  vars: Record<string, string | number>
-): string {
-  const tVoice = useI18n.getState().t;
-  if (!custom?.trim()) return tVoice(fallbackKey, vars);
-  let text = custom;
-  for (const [key, value] of Object.entries(vars)) {
-    text = text.replaceAll(`{${key}}`, String(value));
-  }
-  return text;
 }
 
 type State = {
@@ -133,15 +117,6 @@ let pendingSave: Partial<Settings> | null = null;
 let overlayChannel: ReturnType<typeof supabase.channel> | null = null;
 let overlayChannelToken: string | null = null;
 
-type OverlayAlert = {
-  type: "gift" | "follow" | "sub" | "share";
-  username: string;
-  nickname?: string;
-  avatar?: string;
-  giftName?: string;
-  count?: number;
-};
-
 function openOverlayChannel(token: string | null | undefined) {
   if (!token || overlayChannelToken === token) return;
   closeOverlayChannel();
@@ -158,11 +133,20 @@ function closeOverlayChannel() {
   }
 }
 
-function broadcastOverlayAlert(alert: OverlayAlert) {
-  // Silenciosamente no-op sin canal abierto (overlay_token no cargó a
-  // tiempo, o esta cuenta nunca abrió Notificaciones) — la voz y el resto
-  // de la app siguen andando igual, esto es solo un extra.
-  overlayChannel?.send({ type: "broadcast", event: "alert", payload: alert });
+/** Arma (ver resolveOverlayAlert en alertPhrase.ts, compartido con el
+ *  preview de Notificaciones) y manda el payload ya resuelto para un
+ *  evento — no-op silencioso sin canal abierto (overlay_token no cargó a
+ *  tiempo, o esta cuenta nunca abrió Notificaciones): la voz y el resto
+ *  de la app siguen andando igual, esto es solo un extra. */
+function broadcastOverlayAlert(
+  settings: Settings | null,
+  type: OverlayEventType,
+  vars: { name: string; gift?: string; count?: number },
+  giftImage?: string
+) {
+  if (!overlayChannel) return;
+  const payload = resolveOverlayAlert(settings, type, vars, giftImage);
+  overlayChannel.send({ type: "broadcast", event: "alert", payload });
 }
 
 // Borra en la base los eventos/canciones que quedaron de la conexión que
@@ -309,7 +293,12 @@ export const useStore = create<State>((set, get) => ({
         } else if (event.type === "gift") {
           store.addEvent("gift", event.username, event.giftName, event.count, event.nickname);
           playNotifSound(store, "notif_gift_sound");
-          broadcastOverlayAlert({ type: "gift", username: event.username, nickname: event.nickname, avatar: event.avatar, giftName: event.giftName, count: event.count });
+          broadcastOverlayAlert(
+            store.settings,
+            "gift",
+            { name: event.nickname || event.username, gift: event.giftName, count: event.count },
+            event.giftImage
+          );
         } else if (event.type === "like") {
           store.addEvent("like", event.username, undefined, event.count, event.nickname);
           playNotifSound(store, "notif_like_sound");
@@ -319,15 +308,15 @@ export const useStore = create<State>((set, get) => ({
         } else if (event.type === "follow") {
           store.addEvent("follow", event.username, undefined, undefined, event.nickname);
           playNotifSound(store, "notif_follow_sound");
-          broadcastOverlayAlert({ type: "follow", username: event.username, nickname: event.nickname, avatar: event.avatar });
+          broadcastOverlayAlert(store.settings, "follow", { name: event.nickname || event.username });
         } else if (event.type === "share") {
           store.addEvent("share", event.username, undefined, undefined, event.nickname);
           playNotifSound(store, "notif_share_sound");
-          broadcastOverlayAlert({ type: "share", username: event.username, nickname: event.nickname, avatar: event.avatar });
+          broadcastOverlayAlert(store.settings, "share", { name: event.nickname || event.username });
         } else if (event.type === "sub") {
           store.addEvent("sub", event.username, event.detail, undefined, event.nickname);
           playNotifSound(store, "notif_sub_sound");
-          broadcastOverlayAlert({ type: "sub", username: event.username, nickname: event.nickname, avatar: event.avatar });
+          broadcastOverlayAlert(store.settings, "sub", { name: event.nickname || event.username });
         }
       },
     });

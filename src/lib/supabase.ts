@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { useI18n, type TranslationKey } from "./i18n";
+import type { OverlayConfig, OverlayEventType } from "./overlayConfig";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -59,6 +60,12 @@ export type Settings = {
   // src/views/OverlayPage.tsx. Regenerable desde Notificaciones si se
   // filtra (ej. se compartió la URL sin querer).
   overlay_token: string;
+  // Animación/tipografía/texto/imagen propia por tipo de evento para esa
+  // misma alerta visual — ver src/lib/overlayConfig.ts. Siempre pasar por
+  // normalizeOverlayConfig() antes de usar: el tipo de acá es un contrato,
+  // no una garantía en runtime (una fila vieja o tocada a mano puede traer
+  // algún evento o campo de menos).
+  overlay_config: OverlayConfig;
   theme: "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest";
   created_at: string;
   updated_at: string;
@@ -149,6 +156,43 @@ export async function uploadAlertSound(file: File, eventKey: string): Promise<st
   }
 
   const { data: publicUrlData } = supabase.storage.from("alert-sounds").getPublicUrl(path);
+  return publicUrlData.publicUrl;
+}
+
+/**
+ * Sube una imagen o gif propio (png/gif/jpg/webp) al bucket `overlay-images`
+ * dentro de la carpeta del usuario autenticado, para usarla en la alerta
+ * visual de OBS de ese tipo de evento (ver overlay_config en Settings). La
+ * política de escritura del bucket exige licencia activa — un usuario sin
+ * membresía recibe el error de Supabase directo si intenta subir igual, así
+ * que la UI debería frenar el intento antes (ver hasActiveLicense).
+ */
+export async function uploadOverlayImage(file: File, eventType: OverlayEventType): Promise<string> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) {
+    throw new Error(useI18n.getState().t("upload_img_err_login_required"));
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const allowedExt = ["png", "gif", "jpg", "jpeg", "webp"];
+  if (!allowedExt.includes(ext)) {
+    throw new Error(useI18n.getState().t("upload_img_err_bad_format"));
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error(useI18n.getState().t("upload_img_err_too_big"));
+  }
+
+  const path = `${userData.user.id}/${eventType}-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("overlay-images")
+    .upload(path, file, { cacheControl: "3600", upsert: false });
+
+  if (uploadError) {
+    throw new Error(`No se pudo subir el archivo: ${uploadError.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage.from("overlay-images").getPublicUrl(path);
   return publicUrlData.publicUrl;
 }
 
