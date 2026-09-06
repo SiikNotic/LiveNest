@@ -9,6 +9,13 @@ export type OverlayFont = "clean" | "impact";
 export type OverlayEventType = "gift" | "follow" | "sub" | "share";
 
 export type OverlayEventConfig = {
+  // Control simple, al mismo nivel que ya tienen el sonido (interruptor
+  // global + "ninguno" por evento) y la voz (interruptor por evento): sin
+  // esto, la única forma de "apagar" la alerta visual de un evento puntual
+  // era no abrir la fuente de OBS — quedaba desalineado con cómo se
+  // apagan las otras dos, que es justo lo que hace sentir todo esto
+  // "desincronizado" al configurarlo.
+  enabled: boolean;
   animation: OverlayAnimation;
   font: OverlayFont;
   // null = usar la misma frase que ya está configurada para la alerta de
@@ -27,6 +34,7 @@ export type OverlayEventConfig = {
 export type OverlayConfig = Record<OverlayEventType, OverlayEventConfig>;
 
 const BASE_EVENT_CONFIG: OverlayEventConfig = {
+  enabled: true,
   animation: "slide",
   font: "clean",
   text_template: null,

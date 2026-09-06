@@ -7,7 +7,7 @@ import { TikTokConnection, checkChannelLive, type TikTokEvent, type ConnectionSt
 import { ytPlayer } from "./youtubePlayer";
 import { useI18n, type TranslationKey } from "./i18n";
 import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
-import type { OverlayEventType } from "./overlayConfig";
+import { normalizeOverlayConfig, type OverlayEventType } from "./overlayConfig";
 import { fillAlertPhrase, resolveOverlayAlert } from "./alertPhrase";
 
 const MAX_MESSAGES = 100;
@@ -145,6 +145,10 @@ function broadcastOverlayAlert(
   giftImage?: string
 ) {
   if (!overlayChannel) return;
+  // Mismo criterio que ya tienen el sonido ("ninguno" por evento) y la voz
+  // (interruptor por evento): si esta alerta puntual está apagada, ni
+  // siquiera se arma el payload.
+  if (!normalizeOverlayConfig(settings?.overlay_config)[type].enabled) return;
   const payload = resolveOverlayAlert(settings, type, vars, giftImage);
   overlayChannel.send({ type: "broadcast", event: "alert", payload });
 }

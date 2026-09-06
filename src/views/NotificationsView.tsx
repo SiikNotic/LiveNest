@@ -11,8 +11,8 @@ import {
 import { OverlayAlertCard } from "../components/OverlayAlertCard";
 import {
   Bell, Volume2, Gift, Heart, UserPlus, Share2, Crown,
-  Play, Mic, ChevronRight, Upload, Loader2, RotateCcw, Lock,
-  MonitorPlay, Copy, Check, RefreshCw, Sparkles,
+  Play, Mic, ChevronRight, ChevronDown, Upload, Loader2, RotateCcw, Lock,
+  MonitorPlay, Copy, Check, RefreshCw, Sparkles, EyeOff,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -97,6 +97,7 @@ export function NotificationsView() {
   const [overlayCopied, setOverlayCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [expandedOverlayEvent, setExpandedOverlayEvent] = useState<OverlayEventType | null>(null);
+  const [advancedOverlayEvent, setAdvancedOverlayEvent] = useState<OverlayEventType | null>(null);
   const [previewType, setPreviewType] = useState<OverlayEventType>("gift");
   const [previewVisible, setPreviewVisible] = useState(true);
   const [overlayImgUploading, setOverlayImgUploading] = useState<OverlayEventType | null>(null);
@@ -435,8 +436,15 @@ export function NotificationsView() {
 
         <div>
           <p className="label px-1 mb-2">{t("notif_overlay_preview_title")}</p>
-          <div className="rounded-xl bg-black/40 border border-border p-6 flex items-center justify-center min-h-[104px] overflow-hidden">
-            <OverlayAlertCard alert={previewAlert} visible={previewVisible} />
+          <div className="relative rounded-xl bg-black/40 border border-border p-6 flex items-center justify-center min-h-[104px] overflow-hidden">
+            <div className={overlayConfig[previewType].enabled ? "" : "opacity-30"}>
+              <OverlayAlertCard alert={previewAlert} visible={previewVisible} />
+            </div>
+            {!overlayConfig[previewType].enabled && (
+              <p className="absolute inset-x-0 bottom-2 text-center text-[10px] font-bold text-muted uppercase tracking-wide">
+                {t("notif_overlay_disabled")}
+              </p>
+            )}
           </div>
         </div>
 
@@ -456,10 +464,18 @@ export function NotificationsView() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-text-soft">{t(meta.labelKey)}</p>
-                    <p className="text-xs text-muted truncate">
-                      {t(OVERLAY_ANIMATION_LABEL_KEY[cfg.animation])} · {t(OVERLAY_FONT_LABEL_KEY[cfg.font])}
+                    <p className="text-xs text-muted truncate flex items-center gap-1">
+                      {cfg.enabled ? (
+                        <>{t(OVERLAY_ANIMATION_LABEL_KEY[cfg.animation])} · {t(OVERLAY_FONT_LABEL_KEY[cfg.font])}</>
+                      ) : (
+                        <><EyeOff className="w-3 h-3 flex-shrink-0" /> {t("notif_overlay_disabled")}</>
+                      )}
                     </p>
                   </div>
+                  <Switch
+                    checked={cfg.enabled}
+                    onChange={() => updateOverlayEvent(type, { enabled: !cfg.enabled })}
+                  />
                   <button
                     onClick={() => playOverlayPreview(type)}
                     className="w-9 h-9 rounded-lg bg-bg-soft border border-border text-muted hover:text-accent flex items-center justify-center transition-colors flex-shrink-0"
@@ -511,74 +527,86 @@ export function NotificationsView() {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="label mb-1.5">{t("notif_overlay_text_label")}</p>
-                      <input
-                        type="text"
-                        value={cfg.text_template ?? ""}
-                        onChange={(e) => updateOverlayEvent(type, { text_template: e.target.value || null })}
-                        placeholder={resolveOverlayAlert(settings, type, overlaySampleVars(type)).title}
-                        className="input text-xs"
-                      />
-                      <p className="text-[10px] text-muted mt-1">{t("notif_overlay_text_hint")}</p>
-                    </div>
+                    <button
+                      onClick={() => setAdvancedOverlayEvent(advancedOverlayEvent === type ? null : type)}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-primary"
+                    >
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${advancedOverlayEvent === type ? "rotate-180" : ""}`} />
+                      {t("notif_overlay_advanced")}
+                    </button>
 
-                    <div>
-                      <p className="label mb-1.5">{t("notif_overlay_image_label")}</p>
-                      <input
-                        ref={(el) => { overlayFileInputs.current[type] = el; }}
-                        type="file"
-                        accept="image/png,image/gif,image/jpeg,image/webp,.png,.gif,.jpg,.jpeg,.webp"
-                        className="hidden"
-                        disabled={!hasActiveLicense}
-                        onChange={(e) => handleOverlayImageUpload(type, e.target.files?.[0])}
-                      />
-                      <div className="flex items-center gap-2">
-                        {cfg.image_url && (
-                          <img src={cfg.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
-                        )}
-                        <button
-                          onClick={() => hasActiveLicense && overlayFileInputs.current[type]?.click()}
-                          disabled={isUploadingImg || !hasActiveLicense}
-                          className="btn-ghost flex-1 text-xs disabled:opacity-60"
-                          title={!hasActiveLicense ? t("members_only_tooltip") : undefined}
-                        >
-                          {isUploadingImg ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : !hasActiveLicense ? (
-                            <Lock className="w-3.5 h-3.5" />
-                          ) : (
-                            <Upload className="w-3.5 h-3.5" />
-                          )}
-                          {isUploadingImg ? t("notif_uploading") : t("notif_overlay_image_upload")}
-                        </button>
-                        {cfg.image_url && (
-                          <button
-                            onClick={() => updateOverlayEvent(type, { image_url: null })}
-                            className="btn-ghost text-xs px-3"
-                            title={t("notif_overlay_image_remove")}
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      {!hasActiveLicense && (
-                        <p className="text-[10px] text-amber-400 mt-1.5 flex items-center gap-1">
-                          <Crown className="w-3 h-3 flex-shrink-0" /> {t("notif_overlay_image_members_only")}
-                        </p>
-                      )}
-                    </div>
-
-                    {type === "gift" && (
-                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-text-soft">{t("notif_overlay_use_real_gift")}</p>
-                          <p className="text-[10px] text-muted mt-0.5">{t("notif_overlay_use_real_gift_hint")}</p>
+                    {advancedOverlayEvent === type && (
+                      <div className="space-y-4 animate-slide-down">
+                        <div>
+                          <p className="label mb-1.5">{t("notif_overlay_text_label")}</p>
+                          <input
+                            type="text"
+                            value={cfg.text_template ?? ""}
+                            onChange={(e) => updateOverlayEvent(type, { text_template: e.target.value || null })}
+                            placeholder={resolveOverlayAlert(settings, type, overlaySampleVars(type)).title}
+                            className="input text-xs"
+                          />
+                          <p className="text-[10px] text-muted mt-1">{t("notif_overlay_text_hint")}</p>
                         </div>
-                        <Switch
-                          checked={cfg.use_real_gift_image}
-                          onChange={() => updateOverlayEvent(type, { use_real_gift_image: !cfg.use_real_gift_image })}
-                        />
+
+                        <div>
+                          <p className="label mb-1.5">{t("notif_overlay_image_label")}</p>
+                          <input
+                            ref={(el) => { overlayFileInputs.current[type] = el; }}
+                            type="file"
+                            accept="image/png,image/gif,image/jpeg,image/webp,.png,.gif,.jpg,.jpeg,.webp"
+                            className="hidden"
+                            disabled={!hasActiveLicense}
+                            onChange={(e) => handleOverlayImageUpload(type, e.target.files?.[0])}
+                          />
+                          <div className="flex items-center gap-2">
+                            {cfg.image_url && (
+                              <img src={cfg.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-border flex-shrink-0" />
+                            )}
+                            <button
+                              onClick={() => hasActiveLicense && overlayFileInputs.current[type]?.click()}
+                              disabled={isUploadingImg || !hasActiveLicense}
+                              className="btn-ghost flex-1 text-xs disabled:opacity-60"
+                              title={!hasActiveLicense ? t("members_only_tooltip") : undefined}
+                            >
+                              {isUploadingImg ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : !hasActiveLicense ? (
+                                <Lock className="w-3.5 h-3.5" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              {isUploadingImg ? t("notif_uploading") : t("notif_overlay_image_upload")}
+                            </button>
+                            {cfg.image_url && (
+                              <button
+                                onClick={() => updateOverlayEvent(type, { image_url: null })}
+                                className="btn-ghost text-xs px-3"
+                                title={t("notif_overlay_image_remove")}
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          {!hasActiveLicense && (
+                            <p className="text-[10px] text-amber-400 mt-1.5 flex items-center gap-1">
+                              <Crown className="w-3 h-3 flex-shrink-0" /> {t("notif_overlay_image_members_only")}
+                            </p>
+                          )}
+                        </div>
+
+                        {type === "gift" && (
+                          <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-text-soft">{t("notif_overlay_use_real_gift")}</p>
+                              <p className="text-[10px] text-muted mt-0.5">{t("notif_overlay_use_real_gift_hint")}</p>
+                            </div>
+                            <Switch
+                              checked={cfg.use_real_gift_image}
+                              onChange={() => updateOverlayEvent(type, { use_real_gift_image: !cfg.use_real_gift_image })}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
