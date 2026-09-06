@@ -508,6 +508,14 @@ export const useStore = create<State>((set, get) => ({
     const settingsId = state.settings.id;
     const updated = { ...state.settings, ...partial, updated_at: new Date().toISOString() };
     set({ settings: updated });
+    // Si el overlay_token cambió (botón "Regenerar" en Notificaciones)
+    // mientras ya había una sesión conectada con el canal de overlay
+    // abierto, hay que re-sincronizarlo YA — si no, el dashboard sigue
+    // mandando alertas al canal VIEJO hasta el próximo connect()/
+    // disconnect(), y la persona que acaba de regenerar la URL (por algo
+    // que se filtró, justamente) se queda pensando que ya está cortada
+    // cuando en realidad el canal viejo sigue activo hasta reconectar.
+    if (partial.overlay_token) openOverlayChannel(partial.overlay_token);
     pendingSave = { ...pendingSave, ...partial };
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
