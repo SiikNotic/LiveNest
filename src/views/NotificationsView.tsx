@@ -6,6 +6,7 @@ import { uploadAlertSound } from "../lib/supabase";
 import {
   Bell, Volume2, Gift, Heart, UserPlus, Share2, Crown,
   Play, Mic, ChevronRight, Upload, Loader2, RotateCcw, Lock,
+  MonitorPlay, Copy, Check, RefreshCw,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -61,6 +62,8 @@ export function NotificationsView() {
   const [activeEvent, setActiveEvent] = useState<string | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [overlayCopied, setOverlayCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const { t } = useI18n();
 
@@ -92,6 +95,26 @@ export function NotificationsView() {
       setUploadError(err?.message || t("notif_err_upload_generic"));
     } finally {
       setUploadingKey(null);
+    }
+  };
+
+  // Mismo origen + BASE_URL que usa auth.tsx para el redirect de Google —
+  // así funciona igual en local, en preview y en producción sin
+  // hardcodear livenest.net acá.
+  const overlayUrl = `${window.location.origin}${import.meta.env.BASE_URL}?overlay=${settings.overlay_token}`;
+
+  const copyOverlayUrl = () => {
+    navigator.clipboard.writeText(overlayUrl);
+    setOverlayCopied(true);
+    setTimeout(() => setOverlayCopied(false), 2000);
+  };
+
+  const regenerateOverlayToken = async () => {
+    setRegenerating(true);
+    try {
+      await saveSettings({ overlay_token: crypto.randomUUID() });
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -292,6 +315,39 @@ export function NotificationsView() {
           })}
         </div>
       )}
+
+      <div className="card space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+            <MonitorPlay className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold">{t("notif_overlay_title")}</h2>
+            <p className="text-xs text-muted">{t("notif_overlay_subtitle")}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            readOnly
+            value={overlayUrl}
+            onFocus={(e) => e.target.select()}
+            className="input flex-1 text-xs font-mono"
+          />
+          <button onClick={copyOverlayUrl} className="btn-ghost text-xs px-3 flex-shrink-0">
+            {overlayCopied ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {overlayCopied ? t("notif_overlay_copied") : t("notif_overlay_copy")}
+          </button>
+        </div>
+        <p className="text-[11px] text-muted">{t("notif_overlay_hint")}</p>
+        <div className="flex items-center justify-between gap-3 pt-1 border-t border-border">
+          <p className="text-[11px] text-muted flex-1">{t("notif_overlay_regenerate_hint")}</p>
+          <button onClick={regenerateOverlayToken} disabled={regenerating} className="btn-ghost text-xs px-3 flex-shrink-0 disabled:opacity-60">
+            {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {t("notif_overlay_regenerate")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

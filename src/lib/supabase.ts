@@ -54,6 +54,11 @@ export type Settings = {
   voice_alert_sub: string | null;
   voice_provider: "browser" | "google" | "elevenlabs" | "inworld";
   voice_random: boolean;
+  // Token público (no requiere login) que identifica el canal de Realtime
+  // por el que viajan las alertas visuales para OBS/Streamlabs — ver
+  // src/views/OverlayPage.tsx. Regenerable desde Notificaciones si se
+  // filtra (ej. se compartió la URL sin querer).
+  overlay_token: string;
   theme: "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest";
   created_at: string;
   updated_at: string;

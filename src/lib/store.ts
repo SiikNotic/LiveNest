@@ -123,6 +123,48 @@ let connectToken = 0;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingSave: Partial<Settings> | null = null;
 
+// Canal de Realtime (broadcast, no tabla) por el que el dashboard reenvía
+// cada regalo/follow/sub/compartido a quien esté escuchando ese
+// overlay_token — típicamente la página de overlay abierta como "Fuente
+// de navegador" en OBS, que corre en un Chromium totalmente aparte y no
+// puede compartir el WebSocket a TikTok que ya tiene esta pestaña. Se abre
+// una sola vez por sesión de conexión (no una por alerta) para no pagar el
+// costo de un join de Realtime en cada evento.
+let overlayChannel: ReturnType<typeof supabase.channel> | null = null;
+let overlayChannelToken: string | null = null;
+
+type OverlayAlert = {
+  type: "gift" | "follow" | "sub" | "share";
+  username: string;
+  nickname?: string;
+  avatar?: string;
+  giftName?: string;
+  count?: number;
+};
+
+function openOverlayChannel(token: string | null | undefined) {
+  if (!token || overlayChannelToken === token) return;
+  closeOverlayChannel();
+  overlayChannel = supabase.channel(`overlay-${token}`);
+  overlayChannel.subscribe();
+  overlayChannelToken = token;
+}
+
+function closeOverlayChannel() {
+  if (overlayChannel) {
+    void supabase.removeChannel(overlayChannel);
+    overlayChannel = null;
+    overlayChannelToken = null;
+  }
+}
+
+function broadcastOverlayAlert(alert: OverlayAlert) {
+  // Silenciosamente no-op sin canal abierto (overlay_token no cargó a
+  // tiempo, o esta cuenta nunca abrió Notificaciones) — la voz y el resto
+  // de la app siguen andando igual, esto es solo un extra.
+  overlayChannel?.send({ type: "broadcast", event: "alert", payload: alert });
+}
+
 // Borra en la base los eventos/canciones que quedaron de la conexión que
 // se está cerrando. Antes esto vivía solo dentro de disconnect() (el botón
 // "Desconectar" de la UI) — pero cerrar sesión mientras se seguía conectado
@@ -224,6 +266,11 @@ export const useStore = create<State>((set, get) => ({
       });
     });
 
+    // Abrir el canal de overlay ANTES de conectar a TikTok (no al primer
+    // evento) — el join de Realtime tarda una fracción de segundo, y así
+    // ya está listo si el primer regalo llega enseguida.
+    openOverlayChannel(get().settings?.overlay_token);
+
     connection = new TikTokConnection({
       onStatus: (status) => {
         if (status === "connected") {
@@ -262,18 +309,25 @@ export const useStore = create<State>((set, get) => ({
         } else if (event.type === "gift") {
           store.addEvent("gift", event.username, event.giftName, event.count, event.nickname);
           playNotifSound(store, "notif_gift_sound");
+          broadcastOverlayAlert({ type: "gift", username: event.username, nickname: event.nickname, avatar: event.avatar, giftName: event.giftName, count: event.count });
         } else if (event.type === "like") {
           store.addEvent("like", event.username, undefined, event.count, event.nickname);
           playNotifSound(store, "notif_like_sound");
+          // Los likes no van al overlay de OBS — llegan en ráfagas
+          // (cientos por minuto en un directo activo) y saturarían el
+          // cartel de alertas; se quedan solo en la voz/lista de eventos.
         } else if (event.type === "follow") {
           store.addEvent("follow", event.username, undefined, undefined, event.nickname);
           playNotifSound(store, "notif_follow_sound");
+          broadcastOverlayAlert({ type: "follow", username: event.username, nickname: event.nickname, avatar: event.avatar });
         } else if (event.type === "share") {
           store.addEvent("share", event.username, undefined, undefined, event.nickname);
           playNotifSound(store, "notif_share_sound");
+          broadcastOverlayAlert({ type: "share", username: event.username, nickname: event.nickname, avatar: event.avatar });
         } else if (event.type === "sub") {
           store.addEvent("sub", event.username, event.detail, undefined, event.nickname);
           playNotifSound(store, "notif_sub_sound");
+          broadcastOverlayAlert({ type: "sub", username: event.username, nickname: event.nickname, avatar: event.avatar });
         }
       },
     });
@@ -286,6 +340,7 @@ export const useStore = create<State>((set, get) => ({
     // que no dispare un aviso de "no está en vivo" después de que el usuario
     // ya cortó por su cuenta.
     connectToken++;
+    closeOverlayChannel();
     if (connection) {
       connection.disconnect();
       connection = null;
@@ -327,6 +382,7 @@ export const useStore = create<State>((set, get) => ({
    *  logueado, o a la cuenta equivocada. */
   resetSession: () => {
     connectToken++;
+    closeOverlayChannel();
     if (connection) {
       connection.disconnect();
       connection = null;
