@@ -299,6 +299,17 @@ export const translations = {
     // Notifications view
     notif_title: "Sonidos de alerta",
     notif_subtitle: "Suena cuando llegan eventos del live",
+    notif_page_title: "Alertas",
+    notif_page_subtitle: "Sonido, voz y overlay de OBS — todo junto, por tipo de evento",
+    notif_channels_title: "Canales",
+    notif_channels_subtitle: "Interruptor general de sonido y voz — el overlay se prende y apaga evento por evento, más abajo",
+    notif_channel_sound_label: "Sonido",
+    notif_channel_voice_label: "Leer en voz alta",
+    notif_channel_overlay_label: "Alerta visual (OBS)",
+    notif_channel_sound_off_hint: "El sonido está desactivado en general — activalo arriba para elegir uno para este evento.",
+    notif_channel_voice_off_hint: "La voz está desactivada en general — activala arriba para leer este evento en voz alta.",
+    notif_channel_all_off: "Todo apagado para este evento",
+    notif_channel_likes_no_overlay: "Los likes no salen en el overlay — llegan en ráfagas y lo saturarían.",
     notif_volume: "Volumen",
     notif_default_sound: "Sonido por defecto",
     notif_test_sound: "Probar sonido",
@@ -754,8 +765,13 @@ export const translations = {
 
     // Actualización de la app (Android)
     app_update_available: "Hay una versión nueva de LiveNest",
-    app_update_button: "Actualizar",
+    app_update_button: "Descargar ahora",
     app_update_dismiss: "Ahora no",
+    app_update_title: "Nueva versión disponible",
+    app_update_build_label: "Build {build} — la descarga ya empezó sola",
+    app_update_downloading_hint: "Se abrió la descarga en tu navegador. Cuando termine, tocá la notificación de \"Descarga completa\" para instalarla — Android va a pedirte confirmar la instalación una sola vez.",
+    app_update_later: "Más tarde",
+    app_update_whats_changed: "Qué cambió",
   },
   en: {
     app_tagline: "Live voice reader",
@@ -1041,6 +1057,17 @@ export const translations = {
 
     notif_title: "Alert sounds",
     notif_subtitle: "Plays when live events arrive",
+    notif_page_title: "Alerts",
+    notif_page_subtitle: "Sound, voice, and OBS overlay — all together, per event type",
+    notif_channels_title: "Channels",
+    notif_channels_subtitle: "Master switch for sound and voice — the overlay is turned on/off per event, further down",
+    notif_channel_sound_label: "Sound",
+    notif_channel_voice_label: "Read aloud",
+    notif_channel_overlay_label: "Visual alert (OBS)",
+    notif_channel_sound_off_hint: "Sound is off overall — turn it on above to pick one for this event.",
+    notif_channel_voice_off_hint: "Voice is off overall — turn it on above to read this event aloud.",
+    notif_channel_all_off: "Everything off for this event",
+    notif_channel_likes_no_overlay: "Likes don't show in the overlay — they arrive in bursts and would flood it.",
     notif_volume: "Volume",
     notif_default_sound: "Default sound",
     notif_test_sound: "Test sound",
@@ -1490,8 +1517,13 @@ export const translations = {
 
     // App update (Android)
     app_update_available: "A new version of LiveNest is available",
-    app_update_button: "Update",
+    app_update_button: "Download now",
     app_update_dismiss: "Not now",
+    app_update_title: "New version available",
+    app_update_build_label: "Build {build} — the download already started",
+    app_update_downloading_hint: "The download opened in your browser. Once it's done, tap the \"Download complete\" notification to install it — Android will ask you to confirm the install once.",
+    app_update_later: "Later",
+    app_update_whats_changed: "What's changed",
   },
 } as const;
 

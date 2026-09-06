@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AppUpdateBanner } from "./components/AppUpdateBanner";
+import { AppUpdateModal } from "./components/AppUpdateModal";
 import { OverlayPage } from "./views/OverlayPage";
 import "./index.css";
 
@@ -28,8 +28,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <App />
         </AuthProvider>
         {/* Afuera de AuthProvider a propósito: tiene que verse aunque la
-            persona esté en la pantalla de login (ver AppUpdateBanner.tsx). */}
-        <AppUpdateBanner />
+            persona esté en la pantalla de login (ver AppUpdateModal.tsx). */}
+        <AppUpdateModal />
       </ErrorBoundary>
     )}
   </React.StrictMode>

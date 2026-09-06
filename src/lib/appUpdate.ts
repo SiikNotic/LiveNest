@@ -11,7 +11,14 @@ const GITHUB_RELEASES_LATEST_URL = "https://api.github.com/repos/SiikNotic/LiveN
 
 const currentBuild = Number(import.meta.env.VITE_APP_BUILD ?? "0");
 
-export type UpdateInfo = { build: number; downloadUrl: string };
+export type UpdateInfo = {
+  build: number;
+  downloadUrl: string;
+  // Cuerpo de la GitHub Release (Markdown) — lo que cambió en este build,
+  // para mostrarlo en el modal de actualización en vez de un genérico
+  // "hay una versión nueva" sin ningún detalle.
+  notes: string;
+};
 
 /** Solo tiene sentido en la app nativa — el build web (GitHub Pages) no
  *  tiene "versión instalada" de la que actualizarse, se sirve siempre al
@@ -34,7 +41,7 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
     const asset = (data.assets ?? []).find((a: { name: string }) => a.name.endsWith(".apk"));
     if (!asset?.browser_download_url) return null;
 
-    return { build: remoteBuild, downloadUrl: asset.browser_download_url };
+    return { build: remoteBuild, downloadUrl: asset.browser_download_url, notes: typeof data.body === "string" ? data.body : "" };
   } catch {
     return null;
   }
