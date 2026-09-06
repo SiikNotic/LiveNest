@@ -251,6 +251,7 @@ export function Header({ active, onChange }: Props) {
                 <button
                   onClick={() => setMenuOpen(false)}
                   className="w-8 h-8 rounded-xl bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-text transition-colors"
+                  aria-label={t("menu_close")}
                 >
                   <X className="w-4 h-4" />
                 </button>

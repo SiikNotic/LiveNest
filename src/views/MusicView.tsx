@@ -540,6 +540,8 @@ export function MusicView() {
                   <button
                     onClick={() => removeFromQueue(song)}
                     className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-error-400 hover:bg-error/10 transition-colors flex-shrink-0"
+                    title={t("music_remove")}
+                    aria-label={t("music_remove")}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -666,6 +668,8 @@ export function MusicView() {
                               <button
                                 onClick={() => removeSongFromPlaylist(pl.id, item.id)}
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-muted hover:text-error-400 flex-shrink-0 transition-colors"
+                                title={t("music_remove")}
+                                aria-label={t("music_remove")}
                               >
                                 <X className="w-3 h-3" />
                               </button>

@@ -169,7 +169,7 @@ function FilterRow({ filter, onToggle, onDelete }: { filter: FilterRule; onToggl
           {filter.replacement && <span className="text-muted"> → {filter.replacement}</span>}
         </p>
       </div>
-      <button onClick={onDelete} className="text-muted hover:text-red-400 transition-colors p-1.5">
+      <button onClick={onDelete} className="text-muted hover:text-red-400 transition-colors p-1.5" title={t("filters_delete")} aria-label={t("filters_delete")}>
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
@@ -316,10 +316,10 @@ function ChatTemplateSection() {
                 <p className="text-xs text-muted font-mono mt-1 break-words">{tmpl.content}</p>
               </div>
               <div className="flex gap-1 flex-shrink-0">
-                <button onClick={() => { setEditing(tmpl); setShowForm(false); }} className="text-muted hover:text-accent transition-colors p-1.5">
+                <button onClick={() => { setEditing(tmpl); setShowForm(false); }} className="text-muted hover:text-accent transition-colors p-1.5" title={t("templates_edit")} aria-label={t("templates_edit")}>
                   <Edit2 className="w-4 h-4" />
                 </button>
-                <button onClick={() => deleteTemplate(tmpl.id)} className="text-muted hover:text-red-400 transition-colors p-1.5">
+                <button onClick={() => deleteTemplate(tmpl.id)} className="text-muted hover:text-red-400 transition-colors p-1.5" title={t("templates_delete")} aria-label={t("templates_delete")}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

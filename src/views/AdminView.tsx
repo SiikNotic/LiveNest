@@ -348,12 +348,16 @@ export function AdminView() {
                           <button
                             onClick={() => copyKey(k.id, k.key)}
                             className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-primary transition-colors"
+                            title={t("admin_key_copy")}
+                            aria-label={t("admin_key_copy")}
                           >
                             {copiedId === k.id ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
                           <button
                             onClick={() => revokeKey(k.id)}
                             className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-warning-400 transition-colors"
+                            title={t("admin_key_revoke")}
+                            aria-label={t("admin_key_revoke")}
                           >
                             <XCircle className="w-3.5 h-3.5" />
                           </button>
@@ -362,6 +366,8 @@ export function AdminView() {
                       <button
                         onClick={() => deleteKey(k.id)}
                         className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-error-400 transition-colors"
+                        title={t("admin_key_delete")}
+                        aria-label={t("admin_key_delete")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -788,6 +794,8 @@ function UserModal({
             <button
               onClick={onClose}
               className="w-9 h-9 rounded-xl bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-text transition-colors flex-shrink-0"
+              title={t("admin_close_user")}
+              aria-label={t("admin_close_user")}
             >
               <X className="w-4 h-4" />
             </button>

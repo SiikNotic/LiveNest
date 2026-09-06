@@ -97,6 +97,10 @@ export const translations = {
     admin_key_revoked: "Revocada",
     admin_no_keys: "No hay claves generadas.",
     admin_no_licenses: "No hay licencias registradas.",
+    admin_key_copy: "Copiar clave",
+    admin_key_revoke: "Revocar clave",
+    admin_key_delete: "Eliminar clave",
+    admin_close_user: "Cerrar detalle de usuario",
     admin_active: "Activa",
     admin_license_cancelled: "Cancelada",
     admin_license_expired: "Expirada",
@@ -180,6 +184,7 @@ export const translations = {
 
     // Menu
     menu: "Menú",
+    menu_close: "Cerrar menú",
     logout: "Cerrar sesión",
     language: "Idioma",
 
@@ -479,6 +484,7 @@ export const translations = {
     filters_replacement_placeholder: "texto a insertar",
     filters_create: "Crear regla",
     filters_cancel: "Cancelar",
+    filters_delete: "Eliminar regla",
 
     // Templates view
     templates_title: "Plantillas de lectura",
@@ -488,6 +494,7 @@ export const translations = {
     templates_new: "Nueva",
     templates_no_templates: "No hay plantillas.",
     templates_edit: "Editar plantilla",
+    templates_delete: "Eliminar plantilla",
     templates_new_title: "Nueva plantilla",
     templates_name: "Nombre",
     templates_content: "Contenido",
@@ -884,6 +891,10 @@ export const translations = {
     admin_key_revoked: "Revoked",
     admin_no_keys: "No keys generated.",
     admin_no_licenses: "No registered licenses.",
+    admin_key_copy: "Copy key",
+    admin_key_revoke: "Revoke key",
+    admin_key_delete: "Delete key",
+    admin_close_user: "Close user details",
     admin_active: "Active",
     admin_license_cancelled: "Cancelled",
     admin_license_expired: "Expired",
@@ -965,6 +976,7 @@ export const translations = {
     account_redeem_success: "License activated successfully.",
 
     menu: "Menu",
+    menu_close: "Close menu",
     logout: "Log out",
     language: "Language",
 
@@ -1256,6 +1268,7 @@ export const translations = {
     filters_replacement_placeholder: "text to insert",
     filters_create: "Create rule",
     filters_cancel: "Cancel",
+    filters_delete: "Delete rule",
 
     templates_title: "Reading templates",
     templates_help: "Use {user} for the username and {message} for the message. Only one template can be active.",
@@ -1264,6 +1277,7 @@ export const translations = {
     templates_new: "New",
     templates_no_templates: "No templates.",
     templates_edit: "Edit template",
+    templates_delete: "Delete template",
     templates_new_title: "New template",
     templates_name: "Name",
     templates_content: "Content",
