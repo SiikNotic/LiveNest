@@ -229,13 +229,21 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Header active={tab} onChange={setTab} />
 
+        {/* El padding inferior extra de los <main> de abajo suma el
+            safe-area-inset-bottom del sistema: en un teléfono con barra de
+            navegación en pantalla (los tres botones de Android, no
+            gestos), esa barra se dibuja ENCIMA del contenido — sin este
+            padding, lo último de cada pantalla (ej. el botón "Eliminar
+            cuenta") queda tapado detrás de esos botones. El inset es 0 en
+            el resto de los casos (gestos, sin barra, web), así que no
+            cambia nada ahí. */}
         {tab === "account" ? (
           // Llegar hasta acá ya implica user !== null (ver el gate de arriba).
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
             <UserPanelView />
           </main>
         ) : tab === "admin" && isAdmin ? (
-          <main className="flex-1 px-4 pt-2 pb-6 lg:px-6 overflow-y-auto">
+          <main className="flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] lg:px-6 overflow-y-auto">
             <AdminView />
           </main>
         ) : isDashboard ? (
@@ -246,7 +254,7 @@ export default function App() {
             <main className="hidden md:block lg:hidden flex-1 overflow-hidden">
               <TabletDashboard />
             </main>
-            <main className="md:hidden flex-1 px-4 pt-2 pb-6 overflow-y-auto">
+            <main className="md:hidden flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] overflow-y-auto">
               <div className="max-w-md mx-auto w-full">
                 {tab === "chat" && <ChatView />}
                 {tab === "events" && <EventsView />}
@@ -255,7 +263,7 @@ export default function App() {
             </main>
           </>
         ) : (
-          <main className="flex-1 px-4 pt-2 pb-6 lg:px-6 overflow-y-auto">
+          <main className="flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] lg:px-6 overflow-y-auto">
             <div className="max-w-2xl md:max-w-3xl mx-auto w-full">
               {tab === "channels" && <ChannelsView />}
               {tab === "notifications" && <NotificationsView />}

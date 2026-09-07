@@ -801,7 +801,11 @@ function UserModal({
             </button>
           </div>
 
-          <div className="p-4 space-y-4">
+          {/* pb extra en el celu: en mobile este modal es una hoja pegada
+              abajo (bottom-0 arriba), así que sin esto "Eliminar cuenta"
+              queda tapado detrás de la barra de navegación de Android en
+              pantalla — env(...) da 0 en desktop/gestos, no cambia nada ahí. */}
+          <div className="p-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))] space-y-4">
             {error && (
               <div className="flex items-start gap-2 text-xs text-error-400 bg-error/10 rounded-xl p-2.5 border border-error/20">
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />

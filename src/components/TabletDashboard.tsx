@@ -81,7 +81,11 @@ export function TabletDashboard() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      {/* pb con env(safe-area-inset-bottom): este layout también corre en
+          celulares grandes apaisados con barra de navegación en pantalla
+          (ver el mismo ajuste en App.tsx) — sin esto, los paneles de más
+          abajo quedan tapados detrás de esos botones. */}
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))]">
         <ReactGridLayout
           className="layout"
           layout={layout}
