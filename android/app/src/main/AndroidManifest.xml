@@ -49,4 +49,9 @@
     <!-- Evita que el sistema apague la pantalla mientras la app está
          conectada y leyendo el chat (ver @capacitor-community/keep-awake). -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Permite que LiveNest abra el instalador de paquetes para el APK de
+         actualización que ella misma descargó (ver ApkUpdaterPlugin.java).
+         Sin esto, Android bloquea install() aunque el usuario ya haya
+         activado "instalar apps desconocidas" para la app. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

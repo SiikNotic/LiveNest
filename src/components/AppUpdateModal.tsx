@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
-import { DownloadCloud } from "lucide-react";
+import { DownloadCloud, AlertCircle } from "lucide-react";
 import { checkForUpdate, type UpdateInfo } from "../lib/appUpdate";
+import { ApkUpdater } from "../lib/apkUpdater";
 import { useI18n, type TranslationKey } from "../lib/i18n";
 
 // GitHub siempre genera este encabezado en inglés, sea cual sea el idioma
@@ -11,11 +12,6 @@ import { useI18n, type TranslationKey } from "../lib/i18n";
 const KNOWN_HEADING_KEY: Record<string, TranslationKey> = {
   "What's Changed": "app_update_whats_changed",
 };
-
-// Cuánto esperar antes de arrancar la descarga sola, para que la persona
-// llegue a ver el modal (título + qué cambió) antes de que la navegación
-// externa se dispare.
-const DOWNLOAD_AUTOSTART_DELAY_MS = 900;
 
 // build-android.yml genera el body de la release con
 // `generate_release_notes: true` de GitHub — Markdown simple, solo
@@ -37,24 +33,25 @@ function parseReleaseNotes(raw: string): { heading: boolean; text: string }[] {
     });
 }
 
+type Phase = "idle" | "need-permission" | "downloading" | "installing" | "error";
+
 /** Montado una sola vez en main.tsx, fuera de <App /> — así se ve encima de
  *  cualquier pantalla (incluida la de login). No hace nada en la web:
  *  checkForUpdate() ya devuelve null ahí.
  *
- *  La descarga arranca sola (navegación a un dominio externo que Capacitor
- *  le pasa al navegador del sistema) apenas se detecta la actualización —
- *  no hace falta tocar nada para que empiece. Lo único que Android NUNCA
- *  deja saltear, venga de donde venga la APK, es la confirmación de
- *  instalación una vez que la descarga termina — no hay forma de instalar
- *  en un solo toque sin pasar por Google Play (ver ANDROID.md), así que el
- *  botón de abajo es un respaldo por si la navegación automática no llegó
- *  a dispararse (algún WebView más viejo, por ejemplo), no un segundo paso
- *  obligatorio. */
+ *  El APK se descarga DENTRO de la app (ApkUpdater, un plugin nativo propio
+ *  — ver android/app/src/main/java/net/livenest/app/ApkUpdaterPlugin.java),
+ *  nunca abriendo el navegador del sistema. Lo único que Android NUNCA deja
+ *  saltear, venga de donde venga la APK, es la confirmación de instalación
+ *  una vez que la descarga termina — no hay forma de instalar en un solo
+ *  toque sin pasar por Google Play (ver ANDROID.md), así que install() solo
+ *  abre ese instalador nativo y de ahí en más el control es de Android. */
 export function AppUpdateModal() {
   const t = useI18n((s) => s.t);
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const autoStarted = useRef(false);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -67,7 +64,8 @@ export function AppUpdateModal() {
     run();
 
     // También al volver del segundo plano — es el momento más común en que
-    // alguien reabre la app después de que salió un build nuevo.
+    // alguien reabre la app después de que salió un build nuevo (o vuelve
+    // de Ajustes tras activar "instalar apps desconocidas").
     let handle: { remove: () => void } | undefined;
     CapacitorApp.addListener("resume", run).then((h) => {
       handle = h;
@@ -76,13 +74,41 @@ export function AppUpdateModal() {
   }, []);
 
   useEffect(() => {
-    if (!update || autoStarted.current) return;
-    autoStarted.current = true;
-    const timer = setTimeout(() => {
-      window.location.href = update.downloadUrl;
-    }, DOWNLOAD_AUTOSTART_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [update]);
+    if (!Capacitor.isNativePlatform()) return;
+    let handle: { remove: () => void } | undefined;
+    ApkUpdater.addListener("downloadProgress", ({ percent }) => {
+      if (percent >= 0) setProgress(percent);
+    }).then((h) => {
+      handle = h;
+    });
+    return () => handle?.remove();
+  }, []);
+
+  async function startDownload() {
+    if (!update) return;
+    setProgress(0);
+    setPhase("downloading");
+    try {
+      const { path } = await ApkUpdater.download({ url: update.downloadUrl });
+      setPhase("installing");
+      // A partir de acá Android muestra su propio instalador de paquetes
+      // encima de todo — nada más que hacer del lado de la app. Si el
+      // usuario confirma, el proceso actual se cierra y LiveNest vuelve a
+      // abrir con la versión nueva desde el botón "Abrir" del instalador.
+      await ApkUpdater.install({ path });
+    } catch {
+      setPhase("error");
+    }
+  }
+
+  async function handleDownloadClick() {
+    const { value: allowed } = await ApkUpdater.canInstallPackages();
+    if (!allowed) {
+      setPhase("need-permission");
+      return;
+    }
+    await startDownload();
+  }
 
   if (!update || dismissed) return null;
 
@@ -103,7 +129,7 @@ export function AppUpdateModal() {
             </div>
           </div>
 
-          {notes.length > 0 && (
+          {notes.length > 0 && phase === "idle" && (
             <div className="max-h-48 overflow-y-auto scrollbar-thin rounded-xl bg-bg-soft border border-border p-3 mb-4 space-y-1.5">
               {notes.map((line, i) =>
                 line.heading ? (
@@ -119,16 +145,78 @@ export function AppUpdateModal() {
             </div>
           )}
 
-          <p className="text-[11px] text-muted mb-4">{t("app_update_downloading_hint")}</p>
+          {phase === "idle" && (
+            <>
+              <p className="text-[11px] text-muted mb-4">{t("app_update_downloading_hint")}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setDismissed(true)} className="btn-ghost flex-1 text-sm justify-center">
+                  {t("app_update_later")}
+                </button>
+                <button onClick={handleDownloadClick} className="btn-primary flex-1 text-sm justify-center">
+                  {t("app_update_button")}
+                </button>
+              </div>
+            </>
+          )}
 
-          <div className="flex gap-2">
-            <button onClick={() => setDismissed(true)} className="btn-ghost flex-1 text-sm justify-center">
-              {t("app_update_later")}
-            </button>
-            <a href={update.downloadUrl} className="btn-primary flex-1 text-sm justify-center">
-              {t("app_update_button")}
-            </a>
-          </div>
+          {phase === "need-permission" && (
+            <>
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-warning-400/10 border border-warning-400/20 text-warning-400 text-xs mb-4">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{t("app_update_need_permission_desc")}</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setDismissed(true)} className="btn-ghost flex-1 text-sm justify-center">
+                  {t("app_update_later")}
+                </button>
+                <button onClick={() => ApkUpdater.openUnknownSourceSettings()} className="btn-primary flex-1 text-sm justify-center">
+                  {t("app_update_open_settings")}
+                </button>
+              </div>
+              {/* Volver de Ajustes dispara "resume", que solo vuelve a
+                  chequear si hay actualización — a propósito no reintenta
+                  la descarga sola (podría reabrir Ajustes en bucle si el
+                  usuario canceló ahí). Hay que tocar esto de nuevo. */}
+              <button
+                onClick={handleDownloadClick}
+                className="w-full text-center text-xs text-muted hover:text-text-soft mt-2.5 py-1"
+              >
+                {t("app_update_already_allowed")}
+              </button>
+            </>
+          )}
+
+          {phase === "downloading" && (
+            <div className="mb-1">
+              <div className="flex items-center justify-between text-xs text-muted mb-1.5">
+                <span>{t("app_update_progress_label")}</span>
+                <span className="tabular-nums font-semibold text-text-soft">{progress}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-bg-hover overflow-hidden">
+                <div className="h-full bg-primary transition-all duration-150" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="text-[11px] text-muted-soft mt-2">{t("app_update_dont_close")}</p>
+            </div>
+          )}
+
+          {phase === "installing" && <p className="text-xs text-muted text-center py-2">{t("app_update_installing")}</p>}
+
+          {phase === "error" && (
+            <>
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs mb-4">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{t("app_update_error")}</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setDismissed(true)} className="btn-ghost flex-1 text-sm justify-center">
+                  {t("app_update_later")}
+                </button>
+                <button onClick={handleDownloadClick} className="btn-primary flex-1 text-sm justify-center">
+                  {t("app_update_retry")}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

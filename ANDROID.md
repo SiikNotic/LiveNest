@@ -68,16 +68,29 @@ Cada push a `.github/workflows/build-android.yml` compila la APK y la
 publica como [GitHub Release](https://github.com/SiikNotic/LiveNest/releases/latest)
 (pública, sin login) además de como artefacto del run. La app ya instalada
 se fija sola contra esa misma URL cada vez que se abre o vuelve del segundo
-plano (`src/components/AppUpdateBanner.tsx` + `src/lib/appUpdate.ts`) y, si
-hay una versión más nueva, muestra un aviso abajo con un botón
-"Actualizar" — toca eso, Android descarga la APK en el navegador del
-sistema, y al tocar la notificación de descarga completa la instala.
+plano (`src/components/AppUpdateModal.tsx` + `src/lib/appUpdate.ts`) y, si
+hay una versión más nueva, muestra un modal con lo que cambió y un botón
+"Descargar actualización".
+
+La descarga pasa **dentro de la app**, sin abrir Chrome ni ningún
+navegador: un plugin nativo propio
+(`android/app/src/main/java/net/livenest/app/ApkUpdaterPlugin.java`,
+expuesto a React vía `src/lib/apkUpdater.ts`) baja el APK con
+`HttpURLConnection` a la carpeta de caché privada de la app, mostrando el
+progreso en tiempo real, y al terminar abre directo el instalador de
+paquetes de Android para ese archivo (vía el `FileProvider` ya declarado en
+el manifest).
 
 Esto **no** es una actualización silenciosa de un solo toque como las de
 Play Store — Android no deja instalar un APK sideloaded sin que la persona
 lo confirme al menos una vez (por seguridad, ver más abajo "Publicar en
-Google Play" si en algún momento se quiere eso de verdad). Es el máximo
-nivel de automatismo posible sin publicar en la tienda.
+Google Play" si en algún momento se quiere eso de verdad), y tampoco deja
+que una app se instale sola a sí misma sin el permiso "Instalar apps
+desconocidas" activado para ella — si todavía no está activado, el modal
+lo detecta (`canRequestPackageInstalls()`) y manda a la persona directo a
+esa pantalla de Ajustes antes de descargar nada. Es el máximo nivel de
+automatismo posible sin publicar en la tienda, sin saltear ninguna de esas
+protecciones.
 
 Cómo funciona la detección: cada build de CI le pone al bundle el número de
 esa corrida de Actions (`VITE_APP_BUILD`, ver el workflow) y publica la
