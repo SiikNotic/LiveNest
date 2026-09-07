@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useStore } from "../lib/store";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -34,6 +35,14 @@ function matchLang(v: VoiceInfo, code: string): boolean {
   if (code === "en") return vl.startsWith("en");
   return true;
 }
+
+// Motor "Navegador" (Web Speech API, window.speechSynthesis) — se oculta en
+// la app nativa de Android: además de que "el navegador" no tiene sentido
+// mencionarlo estando ya dentro de la app, el WebView de Android no trae
+// voces propias en la mayoría de los dispositivos, así que ofrecerlo ahí
+// era una opción que en la práctica no sonaba.
+const isNative = Capacitor.isNativePlatform();
+const VISIBLE_PROVIDERS = isNative ? PROVIDERS.filter((p) => p.id !== "browser") : PROVIDERS;
 
 export function VoicesView() {
   const { hasActiveLicense } = useAuth();
@@ -128,7 +137,7 @@ export function VoicesView() {
       <div className="card">
         <label className="label">{t("voices_engine")}</label>
         <div className="grid grid-cols-3 gap-2">
-          {PROVIDERS.map((p) => {
+          {VISIBLE_PROVIDERS.map((p) => {
             const Icon = p.icon;
             const isActive = provider === p.id;
             const locked = p.memberOnly && !hasActiveLicense;
@@ -255,7 +264,7 @@ export function VoicesView() {
           {filteredVoices.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted">{t("voices_no_voices")}</p>
-              {effectiveProvider === "browser" && (
+              {effectiveProvider === "browser" && !isNative && (
                 <p className="text-xs text-muted-soft mt-1">{t("voices_browser_hint")}</p>
               )}
             </div>

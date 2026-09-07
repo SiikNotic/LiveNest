@@ -207,7 +207,7 @@ export function NotificationsView() {
         </div>
         <div>
           <h2 className="text-sm font-bold">{t("notif_page_title")}</h2>
-          <p className="text-xs text-muted">{t("notif_page_subtitle")}</p>
+          <p className="text-xs text-muted">{isNative ? t("notif_page_subtitle_app") : t("notif_page_subtitle")}</p>
         </div>
       </div>
 

@@ -334,6 +334,10 @@ export const translations = {
     notif_subtitle: "Suena cuando llegan eventos del live",
     notif_page_title: "Alertas",
     notif_page_subtitle: "Sonido, voz y overlay de OBS — todo junto, por tipo de evento",
+    // La app nativa no tiene overlay de OBS (ver isNative más abajo en este
+    // archivo/componente) — el software de streaming corre en la compu, no
+    // tiene sentido en el celular.
+    notif_page_subtitle_app: "Sonido y voz — todo junto, por tipo de evento",
     notif_channels_title: "Canales",
     notif_channels_subtitle: "Interruptor general — el detalle de cada evento está más abajo",
     notif_channel_sound_label: "Sonido",
@@ -1135,6 +1139,7 @@ export const translations = {
     notif_subtitle: "Plays when live events arrive",
     notif_page_title: "Alerts",
     notif_page_subtitle: "Sound, voice, and OBS overlay — all together, per event type",
+    notif_page_subtitle_app: "Sound and voice — all together, per event type",
     notif_channels_title: "Channels",
     notif_channels_subtitle: "Master switch — each event's detail is further down",
     notif_channel_sound_label: "Sound",
