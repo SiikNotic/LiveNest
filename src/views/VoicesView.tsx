@@ -41,8 +41,18 @@ function matchLang(v: VoiceInfo, code: string): boolean {
 // mencionarlo estando ya dentro de la app, el WebView de Android no trae
 // voces propias en la mayoría de los dispositivos, así que ofrecerlo ahí
 // era una opción que en la práctica no sonaba.
+//
+// "Google" (Google Translate TTS — gratis, sin API key, ver tts-proxy) pasa
+// a ser libre para no-miembros en la app: sin "Navegador", era el único
+// motor que le quedaba a un usuario sin membresía, y quedaba bloqueado
+// detrás de un candado de "solo miembros" que no tenía sentido para algo
+// gratis. En la web sigue siendo solo para miembros porque ahí "Navegador"
+// ya cumple ese rol de opción gratis. voiceManager manda la plataforma en
+// cada pedido a tts-proxy, que es quien de verdad aplica esta excepción.
 const isNative = Capacitor.isNativePlatform();
-const VISIBLE_PROVIDERS = isNative ? PROVIDERS.filter((p) => p.id !== "browser") : PROVIDERS;
+const VISIBLE_PROVIDERS = isNative
+  ? PROVIDERS.filter((p) => p.id !== "browser").map((p) => (p.id === "google" ? { ...p, memberOnly: false } : p))
+  : PROVIDERS;
 
 export function VoicesView() {
   const { hasActiveLicense } = useAuth();
@@ -79,7 +89,11 @@ export function VoicesView() {
 
   // A saved provider that requires membership but the user no longer has one
   // (e.g. license just expired) — behave as "browser" until it's re-saved.
-  const isProviderLocked = (p: VoiceProvider) => (p === "google" || p === "elevenlabs" || p === "inworld") && !hasActiveLicense;
+  // "google" queda afuera de este candado en la app nativa (ver
+  // VISIBLE_PROVIDERS más arriba) — es el motor gratis que le queda a un
+  // usuario sin membresía ahí.
+  const isProviderLocked = (p: VoiceProvider) =>
+    (p === "elevenlabs" || p === "inworld" || (p === "google" && !isNative)) && !hasActiveLicense;
   const effectiveProvider: VoiceProvider = isProviderLocked(provider) ? "browser" : provider;
 
   const allVoices =

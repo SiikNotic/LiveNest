@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "./supabase";
 import { useI18n } from "./i18n";
 
@@ -482,6 +483,13 @@ class VoiceManager {
           provider: "google",
           text: text.slice(0, 1000),
           voiceId,
+          // La app nativa no tiene ningún otro motor gratis (ver
+          // VoicesView: "Navegador" se oculta ahí porque el WebView de
+          // Android no trae voces propias) — tts-proxy usa esto para no
+          // exigirle membresía a "google" cuando el pedido viene de la
+          // app, aunque sí se la siga exigiendo en la web (que tiene
+          // "Navegador" como alternativa gratis real).
+          platform: Capacitor.isNativePlatform() ? "android" : "web",
         }),
       });
     } catch (err) {

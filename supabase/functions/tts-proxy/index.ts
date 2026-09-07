@@ -329,6 +329,7 @@ Deno.serve(async (req: Request) => {
       modelId,
       stability,
       similarityBoost,
+      platform,
     } = await req.json();
 
     // ElevenLabs account usage — Owner-only. Se verifica ANTES del chequeo
@@ -379,6 +380,19 @@ Deno.serve(async (req: Request) => {
     // de hacer cualquier trabajo — esto no se puede saltar llamando a la
     // función directamente, porque ya no confía en un campo "provider"
     // suelto que mande el cliente.
+    //
+    // Excepción: "google" (Google Translate TTS, gratis, sin API key —
+    // ver googleTranslateTTS más arriba, no cuesta nada real a diferencia
+    // de ElevenLabs/Inworld) queda libre para quien llama desde la app
+    // nativa de Android, sin exigirle membresía — es el único motor de
+    // voz gratis que le queda a la app (ahí no está "Navegador", el
+    // WebView de Android no trae voces propias). En la web sigue
+    // requiriendo membresía porque ahí "Navegador" ya es una alternativa
+    // gratis real. `platform` lo manda el cliente sin verificación
+    // criptográfica — es aceptable acá porque lo único que desbloquea es
+    // este mismo motor gratis, no algo con costo real ni datos de nadie.
+    const isFreeGoogleFromApp = provider === "google" && platform === "android";
+
     if (provider === "google" || provider === "elevenlabs" || provider === "inworld") {
       const authHeader = req.headers.get("Authorization") ?? "";
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -394,14 +408,16 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const { data: hasLicense, error: licenseError } = await callerClient.rpc("has_active_license", {
-        p_user_id: userData.user.id,
-      });
-      if (licenseError || !hasLicense) {
-        return new Response(
-          JSON.stringify({ error: "Esta voz es solo para miembros. Hazte miembro para desbloquearla." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+      if (!isFreeGoogleFromApp) {
+        const { data: hasLicense, error: licenseError } = await callerClient.rpc("has_active_license", {
+          p_user_id: userData.user.id,
+        });
+        if (licenseError || !hasLicense) {
+          return new Response(
+            JSON.stringify({ error: "Esta voz es solo para miembros. Hazte miembro para desbloquearla." }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
       }
     }
 
