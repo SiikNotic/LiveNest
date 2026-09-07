@@ -37,6 +37,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historial completo (no el shallow clone por defecto) — hace
+          # falta para poder listar los commits desde el build/tag
+          # anterior más abajo (paso "Armar el 'qué cambió'").
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -88,6 +93,33 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
+      - name: Armar el "qué cambió"
+        id: changelog
+        run: |
+          # generate_release_notes de GitHub arma el "## What's Changed" a
+          # partir de Pull Requests mergeados — este repo pushea directo a
+          # main (nunca por PR, ver CLAUDE.md), así que esa lista siempre
+          # salía vacía y el modal de actualización de la app (ver
+          # src/components/AppUpdateModal.tsx) no tenía nada que mostrar
+          # más que el disclaimer fijo. Se arma acá a mano, listando los
+          # mensajes de commit desde el build/tag anterior — ya vienen
+          # escritos en criollo y describen el cambio real, así que sirven
+          # tal cual como changelog.
+          PREV_TAG=$(git tag --list 'android-build-*' --sort=-v:refname | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "$PREV_TAG"..HEAD --no-merges --pretty=format:'* %s')
+          else
+            LOG=""
+          fi
+          if [ -z "$LOG" ]; then
+            LOG="* Primera build publicada."
+          fi
+          {
+            echo "log<<CHANGELOG_EOF"
+            echo "$LOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publicar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -100,11 +132,7 @@ jobs:
           name: "LiveNest Android (debug) — build ${{ github.run_number }}"
           body: |
             APK de prueba — no está firmada para Play Store, solo para instalar a mano (sideload).
-          # Le agrega a "body" la lista de commits desde la release anterior
-          # (GitHub la arma sola comparando tags) — es el "qué cambió" que
-          # se muestra en el modal de actualización dentro de la app (ver
-          # src/components/AppUpdateModal.tsx), en vez de un aviso genérico
-          # de "hay una versión nueva" sin ningún detalle.
-          append_body: true
-          generate_release_notes: true
+
+            ## What's Changed
+            ${{ steps.changelog.outputs.log }}
           files: android/app/build/outputs/apk/debug/app-debug.apk
