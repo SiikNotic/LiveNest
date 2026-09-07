@@ -250,7 +250,7 @@ function TtsUsageBar() {
   const used = Math.min(ttsUsage?.count ?? 0, TTS_FREE_LIMIT);
   const pct = Math.min(100, (used / TTS_FREE_LIMIT) * 100);
   const resetDate = ttsUsage
-    ? new Date(new Date(ttsUsage.cycleStart).getTime() + 30 * 24 * 60 * 60 * 1000)
+    ? new Date(new Date(ttsUsage.cycleStart).getTime() + 24 * 60 * 60 * 1000)
     : null;
 
   return (
@@ -271,7 +271,9 @@ function TtsUsageBar() {
         </div>
         {resetDate && (
           <p className="text-[10px] text-muted-soft mt-1.5">
-            {t("chat_usage_reset_hint", { date: resetDate.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "numeric", month: "long" }) })}
+            {t("chat_usage_reset_hint", {
+              date: resetDate.toLocaleTimeString(lang === "en" ? "en-US" : "es-ES", { hour: "numeric", minute: "2-digit" }),
+            })}
           </p>
         )}
       </div>

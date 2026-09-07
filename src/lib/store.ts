@@ -18,11 +18,13 @@ const MAX_EVENTS = 200;
 const MAX_SPEAK_QUEUE = 40;
 // Cuota de mensajes leídos por voz para cuentas sin membresía activa
 // (incluye la prueba gratis de 7 días — mientras esté vigente,
-// hasActiveLicense es true y esta cuota ni se evalúa). Se resetea 30 días
-// después del primer mensaje leído del ciclo — ver increment_tts_usage()
-// en la base, que es la fuente de verdad real del contador.
+// hasActiveLicense es true y esta cuota ni se evalúa). Se resetea 24
+// horas después del primer mensaje leído del ciclo — NO es acumulable
+// (usar solo 50 de 200 un día no deja 350 disponibles al siguiente, se
+// vuelve a 200 siempre) — ver increment_tts_usage() en la base, que es
+// la fuente de verdad real del contador.
 export const TTS_FREE_LIMIT = 200;
-const TTS_CYCLE_MS = 30 * 24 * 60 * 60 * 1000;
+const TTS_CYCLE_MS = 24 * 60 * 60 * 1000;
 
 function isTtsCycleStale(cycleStart: string): boolean {
   return Date.now() - new Date(cycleStart).getTime() >= TTS_CYCLE_MS;
