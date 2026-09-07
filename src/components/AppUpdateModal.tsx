@@ -60,6 +60,14 @@ export function AppUpdateModal() {
       checkForUpdate().then((info) => {
         if (info) setUpdate(info);
       });
+      // Red de seguridad: install() ya cierra el modal solo apenas Android
+      // confirma que abrió su instalador (ver startDownload), pero si esa
+      // llamada quedara colgada por lo que sea, volver a esta pantalla —
+      // algo que solo pasa si la instalación NO se completó, porque una
+      // instalación real mata este proceso — no debe dejar a la persona
+      // mirando "abriendo el instalador..." para siempre sin poder hacer
+      // nada.
+      setPhase((p) => (p === "installing" ? "idle" : p));
     };
     run();
 
@@ -91,11 +99,17 @@ export function AppUpdateModal() {
     try {
       const { path } = await ApkUpdater.download({ url: update.downloadUrl });
       setPhase("installing");
-      // A partir de acá Android muestra su propio instalador de paquetes
-      // encima de todo — nada más que hacer del lado de la app. Si el
-      // usuario confirma, el proceso actual se cierra y LiveNest vuelve a
-      // abrir con la versión nueva desde el botón "Abrir" del instalador.
       await ApkUpdater.install({ path });
+      // A partir de acá Android muestra su propio instalador de paquetes
+      // encima de todo — no hay ninguna señal confiable que la app pueda
+      // escuchar para saber si la persona terminó de instalar o canceló
+      // (si instala de verdad, Android mata este proceso igual, así que
+      // no hace falta seguir mostrando nada). Por eso el modal se cierra
+      // solo acá en vez de quedarse congelado en "instalando" para
+      // siempre — si canceló y vuelve a la app, se encuentra LiveNest
+      // normal, y el próximo chequeo (al reabrir o volver del segundo
+      // plano) le vuelve a ofrecer la actualización.
+      setDismissed(true);
     } catch {
       setPhase("error");
     }
