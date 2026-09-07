@@ -5,7 +5,7 @@ import { supabase, licenseSourceLabel } from "../lib/supabase";
 import { MEMBERSHIP_PRICE_LABEL } from "../lib/stripeConfig";
 import { isPasswordValid } from "../lib/passwordPolicy";
 import { PasswordRequirements } from "../components/PasswordRequirements";
-import { KeyRound, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Crown, Calendar, Sparkles, LogOut, User as UserIcon, Lock, Mail } from "lucide-react";
+import { KeyRound, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Crown, Calendar, Sparkles, LogOut, User as UserIcon, Lock, Mail, Trash2 } from "lucide-react";
 import { MembershipCard } from "../components/MembershipCard";
 
 export function UserPanelView() {
@@ -114,6 +114,10 @@ export function UserPanelView() {
     setNewEmail("");
   }, [newEmail, updateEmail, t]);
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const callEdgeFunction = useCallback(async (fnName: string, body: Record<string, unknown> = {}) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -128,6 +132,27 @@ export function UserPanelView() {
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, data };
   }, []);
+
+  // Borra la cuenta al 100% (ver la Edge Function delete-own-account):
+  // cancela primero cualquier suscripción de Stripe activa, borra el
+  // usuario de Auth, y eso cascada hacia absolutamente todos sus datos.
+  // El email se queda registrado en used_trial_emails (ya desde que se
+  // otorgó la prueba gratis) para que no se pueda volver a registrar con
+  // el mismo email y conseguir otra semana gratis.
+  const handleDeleteAccount = useCallback(async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    const { ok, data } = await callEdgeFunction("delete-own-account");
+    if (!ok) {
+      setDeleteError(data.error ?? t("account_delete_error"));
+      setDeleteLoading(false);
+      setConfirmingDelete(false);
+      return;
+    }
+    // La cuenta ya no existe del lado del servidor — signOut() solo limpia
+    // la sesión local para que la app vuelva a la pantalla de login.
+    await signOut();
+  }, [callEdgeFunction, signOut, t]);
 
   // Cancela la suscripción REAL en Stripe (no solo la fila local) — llama a
   // la Edge Function stripe-cancel-subscription, que a su vez le pide a
@@ -493,6 +518,56 @@ export function UserPanelView() {
         >
           {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("account_change_email_button")}
         </button>
+      </div>
+
+      {/* Danger zone: delete account */}
+      <div className="glass rounded-2xl p-5 border border-error-400/30 space-y-3">
+        <div className="flex items-center gap-2">
+          <Trash2 className="w-5 h-5 text-error-400" />
+          <h2 className="text-base font-bold text-error-400">{t("account_danger_zone_title")}</h2>
+        </div>
+        <p className="text-xs text-muted">{t("account_delete_desc")}</p>
+
+        {deleteError && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{deleteError}</span>
+          </div>
+        )}
+
+        {confirmingDelete ? (
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{t("account_delete_confirm_desc")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-400 text-white text-xs font-bold hover:bg-error-500 transition-colors disabled:opacity-50"
+              >
+                {deleteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                {t("account_delete_confirm_button")}
+              </button>
+              <button
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleteLoading}
+                className="px-4 py-2.5 rounded-xl bg-bg-soft border border-border text-xs font-bold text-muted"
+              >
+                {t("account_go_back")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingDelete(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs font-bold hover:bg-error-400/20 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {t("account_delete_button")}
+          </button>
+        )}
       </div>
     </div>
   );

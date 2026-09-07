@@ -181,6 +181,12 @@ export const translations = {
     account_session_expired: "Tu sesión expiró. Vuelve a iniciar sesión.",
     account_redeem_generic_error: "Error al activar la licencia.",
     account_redeem_success: "Licencia activada correctamente.",
+    account_danger_zone_title: "Zona de peligro",
+    account_delete_desc: "Borra tu cuenta y absolutamente todos tus datos (ajustes, filtros, plantillas, canales guardados, playlists, historial) de forma permanente. Si tienes una membresía paga activa, se cancela automáticamente antes de borrar la cuenta.",
+    account_delete_button: "Eliminar mi cuenta",
+    account_delete_confirm_desc: "Esta acción es irreversible: se borran todos tus datos ahora mismo y no hay forma de recuperar la cuenta.",
+    account_delete_confirm_button: "Sí, eliminar mi cuenta definitivamente",
+    account_delete_error: "No se pudo eliminar tu cuenta. Intenta de nuevo.",
 
     // Menu
     menu: "Menú",
@@ -974,6 +980,12 @@ export const translations = {
     account_session_expired: "Your session expired. Please sign in again.",
     account_redeem_generic_error: "Error activating the license.",
     account_redeem_success: "License activated successfully.",
+    account_danger_zone_title: "Danger zone",
+    account_delete_desc: "Permanently deletes your account and absolutely all your data (settings, filters, templates, saved channels, playlists, history). If you have an active paid membership, it's automatically cancelled before the account is deleted.",
+    account_delete_button: "Delete my account",
+    account_delete_confirm_desc: "This is irreversible: all your data is deleted right now and there's no way to recover the account.",
+    account_delete_confirm_button: "Yes, permanently delete my account",
+    account_delete_error: "We couldn't delete your account. Please try again.",
 
     menu: "Menu",
     menu_close: "Close menu",
