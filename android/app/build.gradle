@@ -16,7 +16,32 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Sin esto, cada corrida de CI firmaba el APK con una clave de debug
+    // distinta: Gradle usa por defecto ~/.android/debug.keystore, y como
+    // cada run de GitHub Actions arranca una VM nueva (sin ese archivo),
+    // se generaba una clave random cada vez. Android rechaza instalar una
+    // "actualización" cuya firma no coincide con la ya instalada — por
+    // eso el instalador tiraba "App not installed" y la app vieja se
+    // quedaba tal cual, pidiendo la descarga de nuevo en cada intento.
+    // Con esta keystore fija (contraseñas por defecto de Android, no es
+    // secreta — así son TODAS las keystore de debug) toda build de acá en
+    // adelante queda firmada siempre igual, y las actualizaciones se
+    // instalan solas de verdad. Quien ya tenga instalada una versión
+    // vieja (firmada con alguna de esas claves random anteriores) va a
+    // necesitar desinstalarla una única vez — de ahí en más, ya
+    // encadena.
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

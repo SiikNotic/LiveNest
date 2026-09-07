@@ -99,6 +99,32 @@ contra el de la [última release pública](https://api.github.com/repos/SiikNoti
 vía la API de GitHub (de lectura, sin necesitar token ni login porque el
 repo es público) — si el de GitHub es mayor, hay update.
 
+### Firma del APK de debug — por qué es una keystore fija y no la de siempre
+
+`android/app/debug.keystore` está commiteada a propósito (con las
+contraseñas por defecto de Android, `android`/`androiddebugkey` — no es un
+secreto, así son literalmente todas las keystore de debug) y
+`build.gradle` la usa explícitamente para firmar el `buildType debug`.
+
+Sin esto, cada build de CI quedaba firmado con una clave distinta: Gradle
+usa por defecto `~/.android/debug.keystore`, que se autogenera con una
+clave random la primera vez que no existe — y como cada corrida de GitHub
+Actions arranca en una VM nueva, "la primera vez" era **siempre**. Android
+rechaza instalar una APK cuya firma no coincide con la ya instalada (para
+que nadie pueda reemplazar una app con una versión maliciosa firmada por
+otra persona) — eso es exactamente el "App not installed" que tira el
+instalador al intentar la actualización desde adentro de la app: la
+descarga terminaba bien, pero Android bloqueaba el paso final, la app
+vieja se quedaba como estaba, y el próximo chequeo la volvía a ofrecer en
+bucle porque nunca llegó a instalarse.
+
+Con la keystore fija, toda build de acá en adelante se firma siempre
+igual, así que las actualizaciones encadenan solas de verdad. **Quien ya
+tenga instalada una versión de antes de este cambio** (firmada con alguna
+de esas claves random de builds viejas) va a necesitar desinstalarla una
+única vez e instalar de cero la próxima — de ahí en más, ya queda
+resuelto para siempre.
+
 ## Íconos y splash screen
 
 Capacitor generó íconos y splash screen genéricos por defecto
