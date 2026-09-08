@@ -31,6 +31,25 @@ function isTtsCycleStale(cycleStart: string): boolean {
   return Date.now() - new Date(cycleStart).getTime() >= TTS_CYCLE_MS;
 }
 
+// Trae el uid de la sesión local (sin ida y vuelta al servidor, a
+// diferencia de supabase.auth.getUser()). Hace falta para filtrar a mano
+// por user_id en varias tablas (filters, templates, live_events,
+// song_requests...): su política RLS de SELECT/UPDATE/DELETE es
+// "auth.uid() = user_id OR get_my_role() = 'admin'" — pensada para que el
+// panel de Admin pueda mirar los datos de una cuenta puntual — pero un
+// select/delete SIN filtrar por user_id (apoyado solo en esa política)
+// deja pasar TODAS las filas de TODOS los usuarios para las 3 cuentas
+// admin, no solo las propias. Con eso, cualquier cuenta admin veía la
+// lista de filtros/plantillas de todo el mundo mezclada como si fuera
+// una sola compartida, y al desconectar o cerrar sesión podía llegar a
+// borrarle a otros sus eventos y canciones en cola. Filtrar siempre acá
+// por el propio uid corrige eso sin tocar esa política (que el panel de
+// Admin sí necesita).
+async function getOwnUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 // true si hay una voz de verdad detrás del proveedor/voice_id guardados
 // — sin esto, "leer" no sonaría nada (ej. quedó el voice_id viejo de
 // "Navegador" después de que la cuenta migró/cambió a otro motor, o el
@@ -243,10 +262,12 @@ function broadcastOverlayAlert(
 // función compartida para que ningún camino de "dejar de estar conectado"
 // se la salte, y se le agrega .catch para no perder el error en silencio
 // si la petición falla.
-function clearLiveActivity() {
-  supabase.from("live_events").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+async function clearLiveActivity() {
+  const uid = await getOwnUserId();
+  if (!uid) return;
+  supabase.from("live_events").delete().eq("user_id", uid)
     .then(({ error }) => { if (error) console.error("No se pudo limpiar live_events:", error); });
-  supabase.from("song_requests").delete().in("status", ["queued", "playing"])
+  supabase.from("song_requests").delete().eq("user_id", uid).in("status", ["queued", "playing"])
     .then(({ error }) => { if (error) console.error("No se pudo limpiar song_requests:", error); });
 }
 
@@ -427,7 +448,7 @@ export const useStore = create<State>((set, get) => ({
     voiceManager.stop();
     set((s) => ({ speakQueue: [], processingQueue: false, ttsEpoch: s.ttsEpoch + 1 }));
     // Limpiar eventos, canción actual y cola al desconectar
-    clearLiveActivity();
+    void clearLiveActivity();
     set({
       status: "disconnected",
       isSpeaking: false,
@@ -466,7 +487,7 @@ export const useStore = create<State>((set, get) => ({
       // si no, esos eventos/canciones quedan huérfanos en la base y
       // reaparecen como "actividad vieja" la próxima vez que esta cuenta
       // entre, aunque ya no esté conectada a nada.
-      clearLiveActivity();
+      void clearLiveActivity();
     }
     void disableKeepAwake();
     voiceManager.stop();
@@ -642,9 +663,12 @@ export const useStore = create<State>((set, get) => ({
   },
 
   loadFilters: async () => {
+    const uid = await getOwnUserId();
+    if (!uid) { set({ filters: [] }); return; }
     const { data, error } = await supabase
       .from("filters")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (error) {
       set({ error: useI18n.getState().t("store_err_load_filters") });
@@ -654,9 +678,12 @@ export const useStore = create<State>((set, get) => ({
   },
 
   loadTemplates: async () => {
+    const uid = await getOwnUserId();
+    if (!uid) { set({ templates: [] }); return; }
     const { data, error } = await supabase
       .from("templates")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (error) {
       set({ error: useI18n.getState().t("store_err_load_templates") });
@@ -666,9 +693,12 @@ export const useStore = create<State>((set, get) => ({
   },
 
   loadEvents: async () => {
+    const uid = await getOwnUserId();
+    if (!uid) return;
     const { data, error } = await supabase
       .from("live_events")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(MAX_EVENTS);
     if (error) return;
@@ -676,9 +706,12 @@ export const useStore = create<State>((set, get) => ({
   },
 
   loadSongQueue: async () => {
+    const uid = await getOwnUserId();
+    if (!uid) return;
     const { data, error } = await supabase
       .from("song_requests")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: true })
       .limit(50);
     if (error) return;
@@ -691,7 +724,9 @@ export const useStore = create<State>((set, get) => ({
   clearMessages: () => set({ messages: [], unreadCount: 0 }),
 
   clearEvents: async () => {
-    await supabase.from("live_events").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const uid = await getOwnUserId();
+    if (!uid) return;
+    await supabase.from("live_events").delete().eq("user_id", uid);
     set({ events: [] });
   },
 
