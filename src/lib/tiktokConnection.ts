@@ -185,6 +185,16 @@ export class TikTokConnection {
     this.ws.onopen = () => {
       this.handlers.onStatus?.("connected");
       this.lastPong = Date.now();
+      // Cada reconexión exitosa vuelve a dar el cupo completo de reintentos.
+      // Sin esto, retryCount solo se resetea en connect() (una vez, al
+      // arrancar la sesión), así que en un directo largo se va acumulando
+      // entre incidentes transitorios completamente independientes (un
+      // heartbeat timeout por la pestaña en segundo plano, un corte de wifi
+      // breve...) hasta agotar maxRetries — y entonces un blip cualquiera,
+      // aunque sea tan recuperable como los anteriores, desconecta para
+      // siempre en vez de reintentar. maxRetries debe limitar reintentos
+      // consecutivos sin éxito, no la cantidad total en toda la sesión.
+      this.retryCount = 0;
       this.startHeartbeat();
     };
 

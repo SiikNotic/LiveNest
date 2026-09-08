@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { useI18n, type Lang } from "../lib/i18n";
-import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight } from "lucide-react";
+import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight, Clock } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -138,8 +138,9 @@ export function Header({ active, onChange }: Props) {
                 Live<span className="text-gradient">Nest</span>
               </h1>
               {status === "connected" && username && sessionStartedAt ? (
-                <div className="flex items-center gap-1.5 mt-0.5 px-2.5 h-[26px] rounded-[15px] bg-black w-fit max-w-full">
-                  <span className="text-[10px] font-bold text-white/80 tabular-nums flex-shrink-0">
+                <div className="flex items-center gap-1.5 mt-0.5 px-2.5 py-1 rounded-xl bg-bg-soft border border-border w-fit max-w-full">
+                  <Clock className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                  <span className="text-[11px] font-semibold tabular-nums flex-shrink-0">
                     <LiveTimer startedAt={sessionStartedAt} />
                   </span>
                 </div>
