@@ -137,16 +137,11 @@ export function Header({ active, onChange }: Props) {
               <h1 className="text-base font-extrabold leading-tight tracking-tight">
                 Live<span className="text-gradient">Nest</span>
               </h1>
-              {status === "connected" && username ? (
+              {status === "connected" && username && sessionStartedAt ? (
                 <div className="flex items-center gap-1.5 mt-0.5 px-2.5 h-[26px] rounded-[15px] bg-black w-fit max-w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#fa3532] animate-pulse-soft flex-shrink-0" />
-                  <span className="text-[10px] font-extrabold tracking-wide text-white flex-shrink-0">LIVE</span>
-                  {sessionStartedAt && (
-                    <span className="text-[10px] text-white/60 tabular-nums flex-shrink-0">
-                      <LiveTimer startedAt={sessionStartedAt} />
-                    </span>
-                  )}
-                  <span className="text-[10px] text-white/50 truncate">@{username}</span>
+                  <span className="text-[10px] font-bold text-white/80 tabular-nums flex-shrink-0">
+                    <LiveTimer startedAt={sessionStartedAt} />
+                  </span>
                 </div>
               ) : (
                 <p className="text-[11px] text-muted leading-tight truncate flex items-center gap-1">

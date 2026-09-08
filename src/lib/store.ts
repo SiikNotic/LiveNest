@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { Capacitor } from "@capacitor/core";
 import { supabase, type ChatMessage, type FilterRule, type Settings, type Template, type LiveEvent, type SongRequest, type MusicPlaylist, type MusicPlaylistItem } from "./supabase";
 import { voiceManager, cleanNameForSpeech } from "./voiceManager";
 import { soundManager, isCustomSoundUrl } from "./soundManager";
@@ -28,6 +29,24 @@ const TTS_CYCLE_MS = 24 * 60 * 60 * 1000;
 
 function isTtsCycleStale(cycleStart: string): boolean {
   return Date.now() - new Date(cycleStart).getTime() >= TTS_CYCLE_MS;
+}
+
+// true si hay una voz de verdad detrás del proveedor/voice_id guardados
+// — sin esto, "leer" no sonaría nada (ej. quedó el voice_id viejo de
+// "Navegador" después de que la cuenta migró/cambió a otro motor, o el
+// usuario cambió de proveedor en Voces sin llegar a elegir una voz de la
+// lista nueva) y no tiene sentido gastarle cuota gratis a la cuenta por
+// un intento mudo. Solo se valida a fondo "google" (catálogo chico y
+// fijo, siempre disponible en memoria sin pedirle nada al servidor) —
+// para browser/elevenlabs/inworld esas listas se cargan de a poco o
+// recién al abrir Voces, así que un catálogo todavía vacío acá no prueba
+// que la voz elegida no exista de verdad.
+function hasUsableVoice(settings: Settings): boolean {
+  if (!settings.voice_id) return false;
+  if (settings.voice_provider === "google") {
+    return voiceManager.getGoogleVoices().some((v) => v.id === settings.voice_id);
+  }
+  return true;
 }
 
 type State = {
@@ -536,6 +555,10 @@ export const useStore = create<State>((set, get) => ({
   speakMessage: async (msg: ChatMessage) => {
     const state = get();
     if (!state.settings) return;
+    // Sin una voz de verdad para leer, no tiene sentido gastarle cuota
+    // gratis a la cuenta por un intento que no iba a sonar (ver
+    // hasUsableVoice).
+    if (!hasUsableVoice(state.settings)) return;
     if (!get().consumeTtsQuota()) return;
     const text = applyTemplate(msg.message, msg.username, state.templates);
     voiceManager.stop();
@@ -562,7 +585,22 @@ export const useStore = create<State>((set, get) => ({
       set({ error: useI18n.getState().t("store_err_load_settings") });
       return;
     }
-    set({ settings: data as Settings });
+    const settings = data as Settings;
+    set({ settings });
+
+    // La app nativa oculta "Navegador" en el selector de voz (VoicesView)
+    // porque el WebView de Android no trae voces propias — pero toda
+    // cuenta arranca con voice_provider = 'browser' (el default de la
+    // tabla, compartido con la web), así que en la app se migra sola una
+    // única vez a "google" (Voz Gratis, el único motor sin membresía que
+    // le queda ahí), con un voice_id válido para ese catálogo — si no, el
+    // auto-read se quedaría "leyendo" en silencio sin que nadie note por
+    // qué. Solo toca el default de fábrica: si el usuario ya eligió otra
+    // cosa a mano, esto no se vuelve a disparar (deja de ser 'browser').
+    if (Capacitor.isNativePlatform() && settings.voice_provider === "browser") {
+      const lang = (settings.language || "es").toLowerCase();
+      get().saveSettings({ voice_provider: "google", voice_id: lang.startsWith("en") ? "en" : "es" });
+    }
   },
 
   saveSettings: async (partial: Partial<Settings>) => {
@@ -679,7 +717,16 @@ export const useStore = create<State>((set, get) => ({
       return;
     }
 
-    // Cuenta sin membresía activa que ya agotó su cuota gratis del mes —
+    // Sin una voz de verdad detrás del proveedor/voice_id guardados, no
+    // hay nada para leer — se descarta sin gastar cuota (ver
+    // hasUsableVoice), igual que el descarte por epoch de arriba.
+    if (!state.settings || !hasUsableVoice(state.settings)) {
+      set((s) => ({ speakQueue: s.speakQueue.slice(1) }));
+      get().processQueue();
+      return;
+    }
+
+    // Cuenta sin membresía activa que ya agotó su cuota gratis del día —
     // este mensaje se descarta en silencio (no se lee) y se sigue con el
     // siguiente, igual que el descarte por epoch de arriba.
     if (!get().consumeTtsQuota()) {
