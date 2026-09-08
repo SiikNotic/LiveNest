@@ -499,6 +499,7 @@ export const translations = {
     filters_add_placeholder: "Palabra o link a bloquear",
     filters_add_button: "Añadir",
     filters_add_defaults: "Añadir links comunes",
+    filters_view_list: "Ver lista ({n})",
 
     // Templates view
     templates_title: "Plantillas de lectura",
@@ -1300,6 +1301,7 @@ export const translations = {
     filters_add_placeholder: "Word or link to block",
     filters_add_button: "Add",
     filters_add_defaults: "Add common links",
+    filters_view_list: "View list ({n})",
     filters_cancel: "Cancel",
     filters_delete: "Delete rule",
 

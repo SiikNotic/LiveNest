@@ -4,7 +4,7 @@ import { useI18n } from "../lib/i18n";
 import { supabase, type FilterRule, type Template, type Settings } from "../lib/supabase";
 import {
   Plus, Trash2, Filter as FilterIcon, Shield, LayoutTemplate, Check, Edit2, X,
-  Gift, UserPlus, Heart, Share2, Crown, RotateCcw, SlidersHorizontal, Link as LinkIcon, Hash,
+  Gift, UserPlus, Heart, Share2, Crown, RotateCcw, SlidersHorizontal, Link as LinkIcon, Hash, ChevronDown,
 } from "lucide-react";
 
 // Fusiona lo que antes eran tres secciones separadas (Filtros, Plantillas,
@@ -88,11 +88,10 @@ function FiltersSection() {
   const settings = useStore((s) => s.settings);
   const saveSettings = useStore((s) => s.saveSettings);
   const { t } = useI18n();
-
-  const toggleFilter = async (f: FilterRule) => {
-    await supabase.from("filters").update({ enabled: !f.enabled }).eq("id", f.id);
-    loadFilters();
-  };
+  // La lista arranca cerrada — con varias palabras/links bloqueados,
+  // mostrarlos siempre todos hacía que la pantalla fuera kilométrica. Se
+  // despliega solo al tocar el resumen de abajo.
+  const [expanded, setExpanded] = useState(false);
 
   const deleteFilter = async (id: string) => {
     await supabase.from("filters").delete().eq("id", id);
@@ -167,9 +166,20 @@ function FiltersSection() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filters.map((f) => (
-            <FilterRow key={f.id} filter={f} onToggle={() => toggleFilter(f)} onDelete={() => deleteFilter(f.id)} />
-          ))}
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="w-full flex items-center justify-between gap-2 px-1 py-1 text-text-soft"
+          >
+            <span className="text-xs font-semibold">{t("filters_view_list", { n: filters.length })}</span>
+            <ChevronDown className={`w-4 h-4 text-muted transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+          </button>
+          {expanded && (
+            <div className="space-y-2 animate-slide-down">
+              {filters.map((f) => (
+                <FilterRow key={f.id} filter={f} onDelete={() => deleteFilter(f.id)} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -203,13 +213,19 @@ function BlockAddForm({ onAdd }: { onAdd: (value: string) => void }) {
   );
 }
 
-function FilterRow({ filter, onToggle, onDelete }: { filter: FilterRule; onToggle: () => void; onDelete: () => void }) {
+function FilterRow({ filter, onDelete }: { filter: FilterRule; onDelete: () => void }) {
   const { t } = useI18n();
   // Todo lo creado desde la lista nueva es type "block" + field "word" —
   // para esos, la fila se muestra simple (ícono + valor). Las reglas más
   // avanzadas que alguien haya creado con el formulario viejo (usuario,
   // emoji, regex, reemplazo) siguen mostrando sus badges de siempre, para
   // no esconder que existen ni qué hacen.
+  //
+  // Ya no hay botón de encender/apagar acá — solo borrar. Una fila que ya
+  // estuviera desactivada de antes (enabled: false, creada con el
+  // formulario viejo) se sigue mostrando atenuada para no ocultar que no
+  // está aplicando, aunque ya no haya forma de reactivarla desde acá —
+  // hay que borrarla y agregarla de nuevo.
   const isSimpleBlock = filter.type === "block" && filter.field === "word";
   const typeConfig = {
     block: { label: t("filters_block"), badge: "badge-danger" },
@@ -220,12 +236,6 @@ function FilterRow({ filter, onToggle, onDelete }: { filter: FilterRule; onToggl
 
   return (
     <div className={`card flex items-center gap-3 ${!filter.enabled ? "opacity-50" : ""}`}>
-      <button
-        onClick={onToggle}
-        className={`w-10 h-6 rounded-full transition-all duration-200 flex-shrink-0 relative ${filter.enabled ? "bg-primary" : "bg-border"}`}
-      >
-        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${filter.enabled ? "left-[18px]" : "left-0.5"}`} />
-      </button>
       <div className="flex-1 min-w-0">
         {isSimpleBlock ? (
           <div className="flex items-center gap-1.5">
