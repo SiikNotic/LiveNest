@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useStore } from "../lib/store";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
@@ -11,6 +12,11 @@ import {
   Loader2, CheckCircle2, Repeat, Trash2,
 } from "lucide-react";
 import type { SongRequest } from "../lib/supabase";
+
+// El tope de altura de la miniatura de más abajo es un ajuste solo para
+// la versión web (paneles del dashboard de escritorio/tablet) — en la app
+// nativa se deja el aspect-video de siempre, sin tocar nada.
+const isNative = Capacitor.isNativePlatform();
 
 function extractVideoId(input: string): string | null {
   const trimmed = input.trim();
@@ -283,7 +289,7 @@ export function MusicView() {
                 tenía disponible, tapando los controles de abajo. El tope en
                 vh lo mantiene dentro de lo razonable sin dejar de escalar
                 con el ancho de la columna. */}
-            <div className="relative w-full aspect-video max-h-[38vh] bg-black rounded-t-2xl overflow-hidden flex items-center justify-center">
+            <div className={`relative w-full aspect-video ${isNative ? "" : "max-h-[38vh]"} bg-black rounded-t-2xl overflow-hidden flex items-center justify-center`}>
               {currentSong && currentSong.video_id ? (
                 <img
                   src={`https://img.youtube.com/vi/${currentSong.video_id}/hqdefault.jpg`}

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import GridLayout, { WidthProvider, type Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import { GripVertical, RotateCcw } from "lucide-react";
@@ -13,6 +14,9 @@ const ReactGridLayout = WidthProvider(GridLayout);
 const ROW_HEIGHT = 28;
 const GRID_MARGIN = 12;
 const MIN_ROW_HEIGHT = 20;
+// Este ajuste es solo para la versión web — en la app nativa (tablet
+// Android) se mantiene el rowHeight fijo de siempre, sin tocar nada.
+const isNative = Capacitor.isNativePlatform();
 
 /*
 Versión tablet del dashboard: 2 columnas, objetivos táctiles grandes,
@@ -78,7 +82,8 @@ export function TabletDashboard() {
   // siempre, para que Música/Alertas no queden cortados en pantallas más
   // chicas de lo asumido.
   const totalRows = useMemo(() => layout.reduce((max, l) => Math.max(max, l.y + l.h), 1), [layout]);
-  const { containerRef: gridContainerRef, rowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
+  const { containerRef: gridContainerRef, rowHeight: autoRowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
+  const rowHeight = isNative ? ROW_HEIGHT : autoRowHeight;
 
   return (
     <div className="h-full flex flex-col">

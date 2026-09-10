@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import GridLayout, { WidthProvider, type Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -12,6 +13,9 @@ import { useAutoRowHeight } from "../lib/useAutoRowHeight";
 const ROW_HEIGHT = 28;
 const GRID_MARGIN = 16;
 const MIN_ROW_HEIGHT = 20;
+// Este ajuste es solo para la versión web — en la app nativa se mantiene
+// el rowHeight fijo de siempre, sin tocar nada.
+const isNative = Capacitor.isNativePlatform();
 
 const ReactGridLayout = WidthProvider(GridLayout);
 
@@ -134,7 +138,8 @@ export function DesktopDashboard() {
     () => visibleLayout.reduce((max, l) => Math.max(max, l.y + l.h), 1),
     [visibleLayout]
   );
-  const { containerRef: gridContainerRef, rowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
+  const { containerRef: gridContainerRef, rowHeight: autoRowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
+  const rowHeight = isNative ? ROW_HEIGHT : autoRowHeight;
 
   const handleLayoutChange = useCallback((next: Layout[]) => {
     // react-grid-layout solo reporta los items visibles en cada callback —
