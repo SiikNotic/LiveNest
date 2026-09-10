@@ -7,6 +7,11 @@ import { ChatView } from "../views/ChatView";
 import { EventsView } from "../views/EventsView";
 import { MusicView } from "../views/MusicView";
 import { useI18n, type TranslationKey } from "../lib/i18n";
+import { useAutoRowHeight } from "../lib/useAutoRowHeight";
+
+const ROW_HEIGHT = 28;
+const GRID_MARGIN = 16;
+const MIN_ROW_HEIGHT = 20;
 
 const ReactGridLayout = WidthProvider(GridLayout);
 
@@ -121,6 +126,15 @@ export function DesktopDashboard() {
 
   const visiblePanels = useMemo(() => ALL_PANELS.filter((p) => !hidden.includes(p)), [hidden]);
   const visibleLayout = useMemo(() => layout.filter((l) => visiblePanels.includes(l.i as PanelId)), [layout, visiblePanels]);
+  // Filas totales que ocupa el layout visible (el borde inferior más bajo
+  // entre todos los paneles) — con eso, useAutoRowHeight calcula el alto de
+  // fila real para que la grilla llene el alto disponible de la pantalla
+  // en vez de quedarse en el valor fijo de siempre.
+  const totalRows = useMemo(
+    () => visibleLayout.reduce((max, l) => Math.max(max, l.y + l.h), 1),
+    [visibleLayout]
+  );
+  const { containerRef: gridContainerRef, rowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
 
   const handleLayoutChange = useCallback((next: Layout[]) => {
     // react-grid-layout solo reporta los items visibles en cada callback —
@@ -209,14 +223,14 @@ export function DesktopDashboard() {
       </div>
 
       {/* Grid */}
-      <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-4">
+      <div ref={gridContainerRef} className="flex-1 overflow-y-auto px-4 lg:px-6 pb-4">
         <ReactGridLayout
           className="layout"
           layout={visibleLayout}
           onLayoutChange={handleLayoutChange}
           cols={12}
-          rowHeight={28}
-          margin={[16, 16]}
+          rowHeight={rowHeight}
+          margin={[GRID_MARGIN, GRID_MARGIN]}
           draggableHandle=".panel-drag-handle"
           resizeHandles={["se"]}
           isBounded

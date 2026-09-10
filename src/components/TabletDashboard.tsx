@@ -6,8 +6,13 @@ import { ChatView } from "../views/ChatView";
 import { EventsView } from "../views/EventsView";
 import { MusicView } from "../views/MusicView";
 import { useI18n, type TranslationKey } from "../lib/i18n";
+import { useAutoRowHeight } from "../lib/useAutoRowHeight";
 
 const ReactGridLayout = WidthProvider(GridLayout);
+
+const ROW_HEIGHT = 28;
+const GRID_MARGIN = 12;
+const MIN_ROW_HEIGHT = 20;
 
 /*
 Versión tablet del dashboard: 2 columnas, objetivos táctiles grandes,
@@ -68,6 +73,12 @@ export function TabletDashboard() {
   };
 
   const panelOrder = useMemo<PanelId[]>(() => ["chat", "events", "music"], []);
+  // Igual que en DesktopDashboard: calcula el alto de fila real a partir
+  // del alto disponible de la pantalla en vez de usar el valor fijo de
+  // siempre, para que Música/Alertas no queden cortados en pantallas más
+  // chicas de lo asumido.
+  const totalRows = useMemo(() => layout.reduce((max, l) => Math.max(max, l.y + l.h), 1), [layout]);
+  const { containerRef: gridContainerRef, rowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
 
   return (
     <div className="h-full flex flex-col">
@@ -85,14 +96,14 @@ export function TabletDashboard() {
           celulares grandes apaisados con barra de navegación en pantalla
           (ver el mismo ajuste en App.tsx) — sin esto, los paneles de más
           abajo quedan tapados detrás de esos botones. */}
-      <div className="flex-1 overflow-y-auto px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))]">
+      <div ref={gridContainerRef} className="flex-1 overflow-y-auto px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))]">
         <ReactGridLayout
           className="layout"
           layout={layout}
           onLayoutChange={handleLayoutChange}
           cols={2}
-          rowHeight={28}
-          margin={[12, 12]}
+          rowHeight={rowHeight}
+          margin={[GRID_MARGIN, GRID_MARGIN]}
           draggableHandle=".panel-drag-handle"
           isResizable={false}
           isBounded
