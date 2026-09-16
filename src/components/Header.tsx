@@ -60,7 +60,32 @@ export function Header({ active, onChange }: Props) {
   const { lang, setLang, t } = useI18n();
   const { isAdmin, profile, user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  // El menú (fondo + panel) se mantiene montado un ratito más al cerrar,
+  // para que le dé tiempo a la transición de CSS de deslizarlo hacia
+  // afuera — antes se desmontaba en el mismo instante en que menuOpen
+  // pasaba a false, así que abrir animaba pero cerrar era instantáneo y
+  // brusco. menuVisible es lo que de verdad dispara las clases de
+  // transición (transform/opacity); menuMounted solo controla si el
+  // bloque sigue en el DOM mientras esa transición de salida termina.
+  const [menuMounted, setMenuMounted] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [channelAvatar, setChannelAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (menuOpen) {
+      setMenuMounted(true);
+      // Un frame después de montar, para que el navegador registre el
+      // estado inicial (cerrado) antes de pasar al abierto — si se
+      // marcara visible en el mismo render, no habría transición: saltaría
+      // directo al estado final.
+      const id = requestAnimationFrame(() => setMenuVisible(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setMenuVisible(false);
+    // Debe coincidir con la duración de la transición de abajo (duration-300).
+    const timer = setTimeout(() => setMenuMounted(false), 300);
+    return () => clearTimeout(timer);
+  }, [menuOpen]);
 
   // Trae la foto del canal de TikTok más reciente (con el que se transmite),
   // no algo ligado al correo — la cuenta de LiveNest y el canal de TikTok
@@ -219,21 +244,30 @@ export function Header({ active, onChange }: Props) {
         </div>
       </header>
 
-      {menuOpen && (
+      {menuMounted && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+            className={`fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+              menuVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
             onClick={() => setMenuOpen(false)}
           />
           {/* Menú rediseñado a partir de la referencia de Figma "Dual mode
              side navigation menu": ítem activo como píldora sólida, y el
              perfil de cuenta fijo abajo con avatar circular en vez de ser
-             un ítem más de la lista. */}
+             un ítem más de la lista.
+
+             La animación es por transform + transición de CSS (no un
+             @keyframes de una sola pasada) justamente para que funcione
+             igual de fluida al abrir y al cerrar — con menuVisible como
+             único interruptor de ambos sentidos. */}
           <div
             role="dialog"
             aria-modal="true"
             aria-label={t("menu")}
-            className="fixed top-0 left-0 z-50 h-full w-72 max-w-[80vw] bg-bg-card border-r border-border shadow-2xl animate-slide-in-left flex flex-col safe-top safe-bottom lg:hidden"
+            className={`fixed top-0 left-0 z-50 h-full w-72 max-w-[80vw] bg-bg-card border-r border-border shadow-2xl flex flex-col safe-top safe-bottom lg:hidden transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+              menuVisible ? "translate-x-0" : "-translate-x-full"
+            }`}
           >
             {/* Header fijo */}
             <div className="p-4 border-b border-border flex-shrink-0">
