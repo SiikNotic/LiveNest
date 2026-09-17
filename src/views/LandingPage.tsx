@@ -106,7 +106,13 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
             <button onClick={() => scrollTo("faq")} className="hover:text-text transition-colors">{t("landing_nav_faq")}</button>
           </nav>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:inline-flex rounded-xl border border-border bg-bg-soft p-1 gap-1">
+            {/* Antes esto arrancaba oculto hasta el breakpoint sm — en un
+                celular no había ninguna forma de cambiar el idioma de la
+                landing. Si el idioma guardado (localStorage, compartido
+                con el resto de la app) quedó en "en" de una sesión
+                anterior, la landing se veía pegada en inglés sin control
+                visible para volver a español. */}
+            <div className="inline-flex rounded-xl border border-border bg-bg-soft p-1 gap-1">
               {(["es", "en"] as Lang[]).map((l) => (
                 <button
                   key={l}
