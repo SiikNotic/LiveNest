@@ -56,7 +56,29 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - uses: android-actions/setup-android@v3
+      - name: Aceptar licencias del SDK de Android
+        # Antes: `uses: android-actions/setup-android@v3`. Esa acción
+        # internamente corre "sdkmanager tools" para instalar el paquete
+        # legado de herramientas standalone — Google lo sacó del
+        # repositorio del SDK, así que ese paso falla siempre ahora
+        # ("Failed to find package 'tools'"), sin importar qué cambie en
+        # el código. Por eso el build venía fallando desde hace dos
+        # commits — no tenía nada que ver con el menú ni con la landing,
+        # se rompió igual en ambos. No hace falta ese paquete para
+        # compilar con Gradle: los runners ubuntu-latest ya traen el SDK
+        # instalado (ANDROID_HOME) — solo falta aceptar las licencias
+        # para que Gradle pueda bajar sola la plataforma/build-tools que
+        # le falten (API 36, ver android/variables.gradle).
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | sort -V | tail -n1)"
+          fi
+          if [ -z "$SDKMANAGER" ]; then
+            echo "No se encontró sdkmanager en el runner" >&2
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses > /dev/null
 
       - run: npm ci
 
