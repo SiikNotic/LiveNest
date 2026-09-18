@@ -54,6 +54,7 @@ type AuthState = {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
+  signInWithDiscord: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshLicense: () => Promise<void>;
@@ -285,6 +286,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
+  // Mismo mecanismo que signInWithGoogle de arriba (mismo esquema nativo,
+  // mismo cálculo de redirectTo en la web) — Supabase ya redirige siempre
+  // a SU propia URL de callback sin importar el proveedor, así que no hace
+  // falta nada nuevo del lado de Android/Capacitor. Lo único que falta
+  // fuera del código es habilitar "Discord" en Supabase → Authentication →
+  // Providers con el Client ID/Secret de una app creada en el Discord
+  // Developer Portal (ver DISCORD_LOGIN.md).
+  const signInWithDiscord = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "discord",
+      options: {
+        redirectTo: Capacitor.isNativePlatform()
+          ? NATIVE_OAUTH_REDIRECT
+          : window.location.origin + import.meta.env.BASE_URL,
+      },
+    });
+    return { error: error?.message ?? null };
+  }, []);
+
   const clearPasswordRecovery = useCallback(() => {
     setPasswordRecovery(false);
   }, []);
@@ -382,6 +402,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithDiscord,
         signOut,
         refreshProfile,
         refreshLicense,

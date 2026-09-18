@@ -16,10 +16,18 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+function DiscordIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="#5865F2" aria-hidden="true">
+      <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.076.076 0 0 0-.04.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.028ZM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.333-.955 2.418-2.157 2.418Zm7.974 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.211 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418Z" />
+    </svg>
+  );
+}
+
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;
 
 export function AuthView() {
-  const { signIn, signUp, signInWithGoogle, sendPasswordReset } = useAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithDiscord, sendPasswordReset } = useAuth();
   const { t, lang, setLang } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
@@ -30,6 +38,8 @@ export function AuthView() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [discordLoading, setDiscordLoading] = useState(false);
+  const [discordError, setDiscordError] = useState<string | null>(null);
   const [forgotSent, setForgotSent] = useState(false);
 
   // Un link de recuperación/confirmación vencido o ya usado hace que
@@ -99,6 +109,19 @@ export function AuthView() {
     }
   };
 
+  const handleDiscordSignIn = async () => {
+    setDiscordError(null);
+    setDiscordLoading(true);
+    const { error } = await signInWithDiscord();
+    // Igual que con Google: si esto resuelve con error, es que el redirect
+    // ni llegó a salir (proveedor sin habilitar en Supabase, popup/redirect
+    // bloqueado, etc.) — un flujo exitoso nunca vuelve a esta línea.
+    if (error) {
+      setDiscordError(error);
+      setDiscordLoading(false);
+    }
+  };
+
   const switchMode = (next: "signin" | "signup" | "forgot") => {
     setMode(next);
     setError(null);
@@ -144,26 +167,50 @@ export function AuthView() {
 
         {mode !== "forgot" && (
           <>
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              className="w-full py-3 rounded-xl bg-bg-soft border border-border text-sm font-semibold text-text hover:bg-bg-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
-            >
-              {googleLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <GoogleIcon className="w-4 h-4" />
-                  {t("auth_continue_google")}
-                </>
-              )}
-            </button>
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+                className="w-full py-3 rounded-xl bg-bg-soft border border-border text-sm font-semibold text-text hover:bg-bg-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
+              >
+                {googleLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <GoogleIcon className="w-4 h-4" />
+                    {t("auth_continue_google")}
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDiscordSignIn}
+                disabled={discordLoading}
+                className="w-full py-3 rounded-xl bg-bg-soft border border-border text-sm font-semibold text-text hover:bg-bg-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
+              >
+                {discordLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <DiscordIcon className="w-4 h-4" />
+                    {t("auth_continue_discord")}
+                  </>
+                )}
+              </button>
+            </div>
 
             {googleError && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs mt-3">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{googleError}</span>
+              </div>
+            )}
+            {discordError && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs mt-3">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{discordError}</span>
               </div>
             )}
 
