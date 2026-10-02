@@ -1,11 +1,10 @@
-import { useState, memo, useEffect } from "react";
+import { useState, memo } from "react";
 import { useStore, TTS_FREE_LIMIT } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
-import { ytPlayer, type PlayerState } from "../lib/youtubePlayer";
 import { shortenDefaultUsername } from "../lib/voiceManager";
 import { requestUpgrade } from "../components/PremiumLock";
-import { Play, Square, Trash2, Volume2, AlertCircle, Loader2, Tv, RefreshCw, Music, Pause, SkipForward, X, Crown } from "lucide-react";
+import { Play, Square, Trash2, Volume2, AlertCircle, Loader2, Tv, RefreshCw, Crown } from "lucide-react";
 
 export function ChatView() {
   const status = useStore((s) => s.status);
@@ -24,37 +23,12 @@ export function ChatView() {
   const { t } = useI18n();
 
   const [connectInput, setConnectInput] = useState("");
-  const [playerState, setPlayerState] = useState<PlayerState>(ytPlayer.getState());
-  const currentSong = useStore((s) => s.currentSong);
-  const skipSong = useStore((s) => s.skipSong);
-  const stopMusic = useStore((s) => s.stopMusic);
-
-  useEffect(() => {
-    return ytPlayer.subscribe(setPlayerState);
-  }, []);
 
   const isConnected = status === "connected";
   const isConnecting = status === "connecting";
-  const showMiniPlayer = !!currentSong && !!currentSong.video_id;
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {showMiniPlayer && (
-        <MiniPlayer
-          title={currentSong!.video_title ?? currentSong!.query}
-          channel={currentSong!.video_channel ?? ""}
-          username={currentSong!.username}
-          isPlaying={playerState.isPlaying}
-          progress={playerState.progress}
-          duration={playerState.duration}
-          videoId={currentSong!.video_id!}
-          onTogglePlay={() => ytPlayer.togglePlay()}
-          onSkip={() => skipSong()}
-          onRemove={() => stopMusic()}
-          onSeek={(s) => ytPlayer.seekTo(s)}
-        />
-      )}
-
       {notLiveUser && (
         <div className="card border-amber-500/40 bg-amber-500/10 animate-slide-down">
           <div className="flex items-start gap-3">
@@ -173,71 +147,6 @@ export function ChatView() {
   );
 }
 
-function MiniPlayer({
-  title, channel, username, isPlaying, progress, duration, videoId,
-  onTogglePlay, onSkip, onRemove, onSeek,
-}: {
-  title: string; channel: string; username: string; isPlaying: boolean;
-  progress: number; duration: number; videoId: string;
-  onTogglePlay: () => void; onSkip: () => void; onRemove: () => void; onSeek: (s: number) => void;
-}) {
-  const { t } = useI18n();
-  const fmt = (s: number) => {
-    if (!s || isNaN(s)) return "0:00";
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
-  return (
-    <div className="card p-0 overflow-hidden animate-slide-down">
-      <div className="flex items-center gap-3 p-3">
-        <div className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black">
-          <img
-            src={`https://img.youtube.com/vi/${videoId}/default.jpg`}
-            alt=""
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-            <Music className="w-5 h-5 text-white/80" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{title}</p>
-          <p className="text-[11px] text-muted truncate">
-            {channel ? `${channel} · ` : ""}@{username}
-          </p>
-        </div>
-        <button
-          onClick={onTogglePlay}
-          className="w-9 h-9 rounded-full bg-primary text-bg flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform"
-        >
-          {isPlaying ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
-        </button>
-        <button onClick={onSkip} className="text-muted hover:text-text-soft transition-colors p-1.5 flex-shrink-0" title={t("music_skip")}>
-          <SkipForward className="w-4 h-4" />
-        </button>
-        <button onClick={onRemove} className="text-muted hover:text-error-400 transition-colors p-1.5 flex-shrink-0" title={t("music_remove")}>
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex items-center gap-2 px-3 pb-2.5 text-[10px] text-muted tabular-nums">
-        <span className="w-8 text-right">{fmt(progress)}</span>
-        <input
-          type="range"
-          min={0}
-          max={duration || 100}
-          step={1}
-          value={progress}
-          onChange={(e) => onSeek(parseFloat(e.target.value))}
-          className="flex-1 h-1 rounded-full appearance-none bg-bg-hover cursor-pointer accent-primary"
-        />
-        <span className="w-8">{fmt(duration)}</span>
-      </div>
-    </div>
-  );
-}
-
 // Barra de uso gratis de TTS — solo se monta cuando el usuario no tiene
 // membresía activa (la prueba gratis de 7 días cuenta como membresía
 // activa, así que tampoco se ve durante esa semana). Se suscribe directo a
@@ -330,7 +239,7 @@ const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      className={`card card-hover flex items-start gap-3 animate-slide-up ${
+      className={`card card-hover flex items-start gap-3 animate-slide-up border-l-2 border-l-primary/30 ${
         message.skipped ? "opacity-50" : ""
       }`}
     >
@@ -351,16 +260,18 @@ const MessageBubble = memo(function MessageBubble({
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-sm font-bold text-text">{displayName}</span>
           <span className="text-xs text-muted-soft">@{shortenDefaultUsername(message.username)}</span>
+          <span className="text-[10px] text-muted-soft ml-auto tabular-nums flex-shrink-0">{time}</span>
         </div>
-        <div className="flex items-center gap-2 mt-0.5 mb-1 flex-wrap">
-          <span className="text-[10px] text-muted-soft">{time}</span>
-          {message.skipped ? (
-            <span className="badge-danger">{t("chat_filtered")}</span>
-          ) : message.read_at ? (
-            <span className="badge-success">{t("chat_read")}</span>
-          ) : null}
-        </div>
-        <p className="text-sm text-text-soft break-words">{message.message}</p>
+        {(message.skipped || message.read_at) && (
+          <div className="flex items-center gap-2 mt-0.5 mb-1 flex-wrap">
+            {message.skipped ? (
+              <span className="badge-danger">{t("chat_filtered")}</span>
+            ) : (
+              <span className="badge-success">{t("chat_read")}</span>
+            )}
+          </div>
+        )}
+        <p className="text-sm text-text-soft break-words mt-1">{message.message}</p>
       </div>
       {!message.skipped && (
         <button

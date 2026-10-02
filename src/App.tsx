@@ -10,6 +10,7 @@ import { EventsView } from "./views/EventsView";
 import { MusicView } from "./views/MusicView";
 import { NotificationsView } from "./views/NotificationsView";
 import { Header } from "./components/Header";
+import { MusicDock } from "./components/MusicDock";
 import { Sidebar } from "./components/Sidebar";
 import { DesktopDashboard } from "./components/DesktopDashboard";
 import { TabletDashboard } from "./components/TabletDashboard";
@@ -256,6 +257,11 @@ export default function App() {
             </main>
             <main className="md:hidden flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] overflow-y-auto">
               <div className="max-w-md mx-auto w-full">
+                {/* El dock vive acá, fuera de cada vista, para que la canción
+                    siga sonando y visible al cambiar entre Chat y Eventos —
+                    en Música ya está el reproductor grande, así que no se
+                    duplica ahí. */}
+                {tab !== "music" && <MusicDock />}
                 {tab === "chat" && <ChatView />}
                 {tab === "events" && <EventsView />}
                 {tab === "music" && <MusicView />}

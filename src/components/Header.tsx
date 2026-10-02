@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { useI18n, type Lang } from "../lib/i18n";
-import { Volume2, VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight, Clock } from "lucide-react";
+import { VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight, Clock } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
@@ -13,6 +13,15 @@ import { listSavedChannels } from "../lib/savedChannels";
 function proxiedAvatar(url: string): string {
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=96&h=96&fit=cover&default=1`;
 }
+
+// Mismo patrón de ecualizador que el mock de la landing (HeroMock): cada
+// barra pulsa con su propio delay/duración para que se vea como ondas de
+// voz reales, no una animación sincronizada en bloque.
+const READING_WAVE_BARS = [
+  { delay: 0, duration: 0.9 },
+  { delay: 0.15, duration: 1.05 },
+  { delay: 0.3, duration: 0.85 },
+];
 
 // El perfil de cuenta ahora vive fijo abajo del menú (ver referencia de
 // Figma "Dual mode side navigation menu"), así que ya no es un ítem más
@@ -163,11 +172,17 @@ export function Header({ active, onChange }: Props) {
                 Live<span className="text-gradient">Nest</span>
               </h1>
               {status === "connected" && username && sessionStartedAt ? (
-                <div className="flex items-center gap-1.5 mt-0.5 px-2.5 py-1 rounded-xl bg-bg-soft border border-border w-fit max-w-full">
-                  <Clock className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-                  <span className="text-[11px] font-semibold tabular-nums flex-shrink-0">
-                    <LiveTimer startedAt={sessionStartedAt} />
-                  </span>
+                <div className="flex items-center gap-1.5 mt-0.5 w-fit max-w-full">
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/30 flex-shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse-soft" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wide">{statusConfig.text}</span>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-bg-soft border border-border flex-shrink-0">
+                    <Clock className="w-3 h-3 text-accent flex-shrink-0" />
+                    <span className="text-[11px] font-semibold tabular-nums">
+                      <LiveTimer startedAt={sessionStartedAt} />
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <p className="text-[11px] text-muted leading-tight truncate flex items-center gap-1">
@@ -179,10 +194,17 @@ export function Header({ active, onChange }: Props) {
 
             {/* Desktop: LIVE status lives here instead of the logo (sidebar already shows the logo) */}
             <div className="hidden lg:flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bg-soft border border-border">
-                <span className={`w-2 h-2 rounded-full ${statusConfig.dot}`} />
-                <span className={`text-xs font-bold ${statusConfig.color}`}>{statusConfig.text}</span>
-              </div>
+              {status === "connected" ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/30">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse-soft" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">{statusConfig.text}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bg-soft border border-border">
+                  <span className={`w-2 h-2 rounded-full ${statusConfig.dot}`} />
+                  <span className={`text-xs font-bold ${statusConfig.color}`}>{statusConfig.text}</span>
+                </div>
+              )}
               {status === "connected" && username && (
                 <span className="text-xs text-muted">@{username}</span>
               )}
@@ -196,7 +218,15 @@ export function Header({ active, onChange }: Props) {
                 onClick={stopSpeaking}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/15 text-primary text-xs font-semibold animate-slide-down card-press"
               >
-                <Volume2 className="w-3.5 h-3.5 animate-pulse-soft" />
+                <div className="flex items-end gap-[2px] h-3.5 flex-shrink-0">
+                  {READING_WAVE_BARS.map((bar, i) => (
+                    <span
+                      key={i}
+                      className="w-[2px] h-3.5 rounded-full bg-primary origin-bottom animate-wave-bar"
+                      style={{ animationDelay: `${bar.delay}s`, animationDuration: `${bar.duration}s` }}
+                    />
+                  ))}
+                </div>
                 <span className="hidden sm:inline">{t("reading")}</span>
                 <VolumeX className="w-3.5 h-3.5" />
               </button>
@@ -204,7 +234,7 @@ export function Header({ active, onChange }: Props) {
             {status === "connected" && viewerCount > 0 && (
               <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-bg-soft border border-border">
                 <Users className="w-3.5 h-3.5 text-accent" />
-                <span className="text-[11px] font-semibold tabular-nums">{viewerCount}</span>
+                <span className="text-xs font-numeric tracking-wide tabular-nums">{viewerCount}</span>
               </div>
             )}
             <div className="hidden md:flex lg:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-bg-soft border border-border">

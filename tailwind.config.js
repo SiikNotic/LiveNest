@@ -25,6 +25,7 @@ export default {
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
         display: ["Inter", "system-ui", "sans-serif"],
+        numeric: ["Bebas Neue", "Inter", "system-ui", "sans-serif"],
       },
       borderRadius: { "2xl": "1rem", "3xl": "1.25rem" },
       animation: {

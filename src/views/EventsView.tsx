@@ -10,13 +10,16 @@ export function EventsView() {
   const status = useStore((s) => s.status);
   const { t } = useI18n();
 
-  const EVENT_CONFIG: Record<LiveEventType, { icon: typeof Gift; labelKey: import("../lib/i18n").TranslationKey; color: string; bg: string }> = {
-    gift: { icon: Gift, labelKey: "event_gift", color: "text-amber-400", bg: "bg-amber-500/10" },
-    like: { icon: Heart, labelKey: "event_like", color: "text-pink-400", bg: "bg-pink-500/10" },
-    follow: { icon: UserPlus, labelKey: "event_follow", color: "text-primary", bg: "bg-primary/10" },
-    share: { icon: Share2, labelKey: "event_share", color: "text-sky-400", bg: "bg-sky-500/10" },
-    sub: { icon: Crown, labelKey: "event_sub", color: "text-accent", bg: "bg-accent/10" },
-    viewer: { icon: Users, labelKey: "event_viewer", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  const EVENT_CONFIG: Record<
+    LiveEventType,
+    { icon: typeof Gift; labelKey: import("../lib/i18n").TranslationKey; color: string; bg: string; borderTop: string; borderLeft: string }
+  > = {
+    gift: { icon: Gift, labelKey: "event_gift", color: "text-amber-400", bg: "bg-amber-500/10", borderTop: "border-t-amber-400/50", borderLeft: "border-l-amber-400/50" },
+    like: { icon: Heart, labelKey: "event_like", color: "text-pink-400", bg: "bg-pink-500/10", borderTop: "border-t-pink-400/50", borderLeft: "border-l-pink-400/50" },
+    follow: { icon: UserPlus, labelKey: "event_follow", color: "text-primary", bg: "bg-primary/10", borderTop: "border-t-primary/50", borderLeft: "border-l-primary/50" },
+    share: { icon: Share2, labelKey: "event_share", color: "text-sky-400", bg: "bg-sky-500/10", borderTop: "border-t-sky-400/50", borderLeft: "border-l-sky-400/50" },
+    sub: { icon: Crown, labelKey: "event_sub", color: "text-accent", bg: "bg-accent/10", borderTop: "border-t-accent/50", borderLeft: "border-l-accent/50" },
+    viewer: { icon: Users, labelKey: "event_viewer", color: "text-emerald-400", bg: "bg-emerald-500/10", borderTop: "border-t-emerald-400/50", borderLeft: "border-l-emerald-400/50" },
   };
 
   const counts = events.reduce(
@@ -54,11 +57,11 @@ export function EventsView() {
             const Icon = cfg.icon;
             const count = counts[type] ?? 0;
             return (
-              <div key={type} className="card flex flex-col items-center gap-1.5 py-3">
+              <div key={type} className={`card flex flex-col items-center gap-1.5 py-3 border-t-2 ${cfg.borderTop}`}>
                 <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center`}>
                   <Icon className={`w-4 h-4 ${cfg.color}`} />
                 </div>
-                <span className="text-lg font-bold tabular-nums">{count}</span>
+                <span className="text-xl font-numeric tracking-wide tabular-nums">{count}</span>
               </div>
             );
           })}
@@ -110,7 +113,7 @@ export function EventsView() {
     }
 
     return (
-      <div className="card card-hover flex items-center gap-3 animate-slide-up">
+      <div className={`card card-hover flex items-center gap-3 animate-slide-up border-l-2 ${cfg.borderLeft}`}>
         <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
           <Icon className={`w-5 h-5 ${cfg.color}`} />
         </div>
