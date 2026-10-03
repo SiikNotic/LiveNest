@@ -585,13 +585,25 @@ export const useStore = create<State>((set, get) => ({
     voiceManager.stop();
     set({ speakQueue: [], processingQueue: false });
     set({ isSpeaking: true });
-    await voiceManager.speak(text, {
-      voiceId: state.settings.voice_id,
-      rate: state.settings.rate,
-      pitch: state.settings.pitch,
-      volume: state.settings.volume,
-      provider: state.settings.voice_provider,
-    });
+    try {
+      await voiceManager.speak(text, {
+        voiceId: state.settings.voice_id,
+        rate: state.settings.rate,
+        pitch: state.settings.pitch,
+        volume: state.settings.volume,
+        provider: state.settings.voice_provider,
+      });
+    } catch (err) {
+      // Antes esto no se atrapaba: si voiceManager.speak() rechazaba (red
+      // caída, voz recién cambiada a un proveedor sin membresía, etc.), la
+      // excepción cortaba la función ACÁ y el set({ isSpeaking: false })
+      // de abajo nunca corría — isSpeaking se quedaba en true para
+      // siempre.
+      console.error("[speakMessage] TTS error:", err);
+      const ttsErrorMsg = useI18n.getState().t("store_err_tts_failed");
+      set({ error: ttsErrorMsg });
+      setTimeout(() => set((s) => (s.error === ttsErrorMsg ? { error: null } : {})), 6000);
+    }
     set({ isSpeaking: false });
   },
 
@@ -773,13 +785,29 @@ export const useStore = create<State>((set, get) => ({
     set({ processingQueue: true, isSpeaking: true });
     set((s) => ({ speakQueue: s.speakQueue.slice(1) }));
     if (state.settings) {
-      await voiceManager.speak(item.text, {
-        voiceId: item.voiceId ?? state.settings.voice_id,
-        rate: state.settings.rate,
-        pitch: state.settings.pitch,
-        volume: state.settings.volume,
-        provider: state.settings.voice_provider,
-      });
+      try {
+        await voiceManager.speak(item.text, {
+          voiceId: item.voiceId ?? state.settings.voice_id,
+          rate: state.settings.rate,
+          pitch: state.settings.pitch,
+          volume: state.settings.volume,
+          provider: state.settings.voice_provider,
+        });
+      } catch (err) {
+        // Mismo problema que en speakMessage, pero más grave acá: sin
+        // este catch, un solo mensaje que fallara (red, la voz recién
+        // cambiada a un proveedor sin membresía, un voiceId que ya no
+        // existe para el nuevo proveedor...) dejaba processingQueue en
+        // true para siempre — el guard del principio de esta función
+        // (`if (state.processingQueue ...) return`) hacía que CUALQUIER
+        // mensaje nuevo de ahí en más se descartara en silencio sin
+        // intentar leerlo. Visto desde afuera: "cambié de voz en medio
+        // del live y la app dejó de leer mensajes, como que se muteó".
+        console.error("[processQueue] TTS error:", err);
+        const ttsErrorMsg = useI18n.getState().t("store_err_tts_failed");
+        set({ error: ttsErrorMsg });
+        setTimeout(() => set((s) => (s.error === ttsErrorMsg ? { error: null } : {})), 6000);
+      }
     }
     const after = get();
     if (after.ttsEpoch !== item.epoch) return;

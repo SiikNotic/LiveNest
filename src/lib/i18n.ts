@@ -706,6 +706,7 @@ export const translations = {
     // Store errors (ajustes, filtros, plantillas, canciones)
     store_err_load_settings: "No se pudieron cargar los ajustes",
     store_err_save_setting: "No se pudo guardar el ajuste. Revisa tu conexión e inténtalo de nuevo.",
+    store_err_tts_failed: "No se pudo leer ese mensaje en voz alta. Revisa la voz elegida en Ajustes → Voces.",
     store_err_load_filters: "No se pudieron cargar los filtros",
     store_err_load_templates: "No se pudieron cargar las plantillas",
     store_err_update_song: "No se pudo actualizar la canción. Intenta de nuevo.",
@@ -1522,6 +1523,7 @@ export const translations = {
     // Store errors (settings, filters, templates, songs)
     store_err_load_settings: "Couldn't load your settings",
     store_err_save_setting: "Couldn't save your setting. Check your connection and try again.",
+    store_err_tts_failed: "Couldn't read that message out loud. Check the voice you picked in Settings → Voices.",
     store_err_load_filters: "Couldn't load your filters",
     store_err_load_templates: "Couldn't load your templates",
     store_err_update_song: "Couldn't update the song. Try again.",
