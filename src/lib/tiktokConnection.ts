@@ -661,17 +661,19 @@ function normalizeSchemaV2(msg: unknown): TikTokEvent | null {
   }
 }
 
-// Euler Stream schema v2 incluye datos de usuario en data.user.profilePictureUrl
-// y data.user.nickname. Algunos eventos usan data.avatar / data.profilePictureUrl.
-// El payload nativo de TikTok, en cambio, suele anidar la imagen como
-// { avatarThumb: { urlList: ["https://..."] } } (o avatarMedium/avatarLarger,
-// en snake_case o camelCase) en lugar de un string plano — hay que soportar
-// ambas formas o el avatar nunca se resuelve y siempre cae a las iniciales.
+// El protobuf Webcast real de TikTok (confirmado contra el paquete
+// tiktok-live-proto-full-types que usa Euler Stream por debajo: tipo
+// `Image`) nunca trae la URL como string plano ni como "urlList"/
+// "url_list" — la trae en un array llamado literalmente "url". Antes esta
+// función solo buscaba urlList/url_list, así que NUNCA encontraba nada de
+// verdad y el avatar caía siempre a las iniciales, sin importar qué tan
+// completa fuera la lista de candidatos de extractAvatar() de abajo — el
+// problema no eran los nombres de campo probados, era esta función.
 function firstUrlFromList(val: unknown): string | null {
   if (typeof val === "string") return val;
   if (val && typeof val === "object") {
     const obj = val as Record<string, unknown>;
-    const list = obj.urlList ?? obj.url_list;
+    const list = obj.url ?? obj.urlList ?? obj.url_list;
     if (Array.isArray(list) && typeof list[0] === "string") return list[0] as string;
   }
   return null;
@@ -685,8 +687,11 @@ function firstUrlFromList(val: unknown): string | null {
 // calza, se devuelve null y el overlay cae al ícono/imagen propia.
 function extractGiftImage(giftObj: Record<string, unknown> | undefined, data: Record<string, unknown>): string | null {
   const candidates = [
-    giftObj?.image,
+    // Nombres reales del protobuf (Gift.giftImage / Gift.icon, ambos
+    // Image — ver el comentario de firstUrlFromList).
+    giftObj?.giftImage,
     giftObj?.icon,
+    giftObj?.image,
     giftObj?.giftPictureUrl,
     giftObj?.gift_picture_url,
     giftObj?.imageUrl,
@@ -706,6 +711,17 @@ function extractGiftImage(giftObj: Record<string, unknown> | undefined, data: Re
 function extractAvatar(data: Record<string, unknown>, top?: Record<string, unknown>): string | null {
   const user = (data.user ?? data.sender ?? (top?.user as Record<string, unknown> | undefined)) as Record<string, unknown> | undefined;
   const candidates = [
+    // Nombres reales del protobuf Webcast de TikTok — User.profilePicture
+    // / profilePictureLarge / profilePictureMedium / avatarJpg, todos
+    // objetos Image (ver firstUrlFromList). Confirmado contra el paquete
+    // tiktok-live-proto-full-types que usa Euler Stream por debajo —
+    // ninguno de los nombres de abajo (profilePictureUrl, avatarThumb,
+    // avatarMedium, avatarLarger...) existe de verdad en ese esquema, se
+    // dejan solo como respaldo por si algún día cambia el formato.
+    user?.profilePicture,
+    user?.profilePictureLarge,
+    user?.profilePictureMedium,
+    user?.avatarJpg,
     user?.profilePictureUrl,
     user?.avatar_url,
     user?.avatar,
