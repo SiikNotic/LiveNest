@@ -19,7 +19,7 @@ export function EventsView() {
     follow: { icon: UserPlus, labelKey: "event_follow", color: "text-primary", bg: "bg-primary/10", borderTop: "border-t-primary/50", borderLeft: "border-l-primary/50" },
     share: { icon: Share2, labelKey: "event_share", color: "text-sky-400", bg: "bg-sky-500/10", borderTop: "border-t-sky-400/50", borderLeft: "border-l-sky-400/50" },
     sub: { icon: Crown, labelKey: "event_sub", color: "text-accent", bg: "bg-accent/10", borderTop: "border-t-accent/50", borderLeft: "border-l-accent/50" },
-    viewer: { icon: Users, labelKey: "event_viewer", color: "text-emerald-400", bg: "bg-emerald-500/10", borderTop: "border-t-emerald-400/50", borderLeft: "border-l-emerald-400/50" },
+    viewer: { icon: Users, labelKey: "event_viewer", color: "text-success-400", bg: "bg-success-400/10", borderTop: "border-t-success-400/50", borderLeft: "border-l-success-400/50" },
   };
 
   const counts = events.reduce(

@@ -30,13 +30,13 @@ export function ChatView() {
   return (
     <div className="space-y-4 animate-fade-in">
       {notLiveUser && (
-        <div className="card border-amber-500/40 bg-amber-500/10 animate-slide-down">
+        <div className="card border-warning/40 bg-warning-400/10 animate-slide-down">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-              <Tv className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-warning-400/20 flex items-center justify-center flex-shrink-0">
+              <Tv className="w-5 h-5 text-warning-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-bold text-amber-400">
+              <h3 className="text-sm font-bold text-warning-400">
                 {notLiveReason === "invalid" ? t("chat_not_found_title") : t("chat_not_live_title")}
               </h3>
               <p className="text-xs text-muted mt-0.5">
@@ -87,7 +87,7 @@ export function ChatView() {
         </div>
 
         {reconnecting && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg p-2.5 animate-fade-in">
+          <div className="mt-3 flex items-center gap-2 text-xs text-warning-400 bg-warning-400/10 rounded-lg p-2.5 animate-fade-in">
             <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />
             <span>{t("chat_reconnecting")}</span>
           </div>

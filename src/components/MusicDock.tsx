@@ -29,7 +29,7 @@ export function MusicDock() {
         <div className="relative w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 bg-black">
           <img
             src={`https://img.youtube.com/vi/${currentSong.video_id}/default.jpg`}
-            alt=""
+            alt={currentSong.video_title ?? currentSong.query}
             className="w-full h-full object-cover"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
           />
@@ -45,6 +45,7 @@ export function MusicDock() {
         </div>
         <button
           onClick={() => ytPlayer.togglePlay()}
+          aria-label={t("music_toggle_play")}
           className="w-9 h-9 rounded-full bg-gradient-to-r from-primary to-accent text-bg flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform shadow-md shadow-primary/25"
         >
           {playerState.isPlaying ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
@@ -68,7 +69,7 @@ export function MusicDock() {
           step={1}
           value={playerState.progress}
           onChange={(e) => ytPlayer.seekTo(parseFloat(e.target.value))}
-          aria-label={t("music_skip")}
+          aria-label={t("music_seek")}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
       </div>

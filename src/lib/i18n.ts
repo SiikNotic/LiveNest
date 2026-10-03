@@ -195,6 +195,10 @@ export const translations = {
     logout: "Cerrar sesión",
     language: "Idioma",
 
+    // Menú lateral: encabezados de sección (agrupan los tabs de abajo)
+    menu_section_live: "Transmisión",
+    menu_section_settings: "Configuración",
+
     // Tabs
     tab_chat: "Chat",
     tab_events: "Actividad",
@@ -275,6 +279,8 @@ export const translations = {
     music_requested_by: "pedido por @{user}",
     music_skip: "Saltar",
     music_remove: "Quitar",
+    music_toggle_play: "Reproducir o pausar",
+    music_seek: "Buscar en la canción",
     music_no_song_playing: "No hay canción reproduciéndose",
     music_when_command: "Cuando alguien escriba \"{cmd} …\" en el chat, sonará aquí.",
     music_add_by_link: "Añadir canción o playlist de YouTube",
@@ -1011,6 +1017,9 @@ export const translations = {
     logout: "Log out",
     language: "Language",
 
+    menu_section_live: "Live",
+    menu_section_settings: "Settings",
+
     tab_chat: "Chat",
     tab_events: "Activity",
     tab_music: "Music",
@@ -1087,6 +1096,8 @@ export const translations = {
     music_requested_by: "requested by @{user}",
     music_skip: "Skip",
     music_remove: "Remove",
+    music_toggle_play: "Play or pause",
+    music_seek: "Seek in song",
     music_no_song_playing: "No song playing",
     music_when_command: "When someone types \"{cmd} …\" in chat, it will play here.",
     music_add_by_link: "Add a YouTube song or playlist",

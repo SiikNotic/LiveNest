@@ -26,15 +26,33 @@ const READING_WAVE_BARS = [
 // El perfil de cuenta ahora vive fijo abajo del menú (ver referencia de
 // Figma "Dual mode side navigation menu"), así que ya no es un ítem más
 // de esta lista con scroll.
-const MENU_ITEMS: { id: TabId; labelKey: import("../lib/i18n").TranslationKey; icon: typeof MessageCircle }[] = [
-  { id: "chat", labelKey: "tab_chat", icon: MessageCircle },
-  { id: "channels", labelKey: "tab_channels", icon: Bookmark },
-  { id: "events", labelKey: "tab_events", icon: Sparkles },
-  { id: "music", labelKey: "tab_music", icon: Music },
-  { id: "notifications", labelKey: "tab_notifications", icon: Bell },
-  { id: "voices", labelKey: "tab_voices", icon: Mic },
-  { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
-  { id: "general", labelKey: "tab_general", icon: Settings },
+// Agrupado en dos secciones (en vez de una lista plana de 8 ítems) para
+// achicar el conjunto de opciones que hay que escanear de una — con más
+// de ~5-7 ítems sueltos, el tiempo para decidir dónde tocar crece con la
+// cantidad de opciones (Ley de Hick), y agruparlas por objetivo (transmitir
+// vs. configurar) deja cada decisión dentro de un grupo más chico.
+const MENU_SECTIONS: {
+  sectionKey: import("../lib/i18n").TranslationKey;
+  items: { id: TabId; labelKey: import("../lib/i18n").TranslationKey; icon: typeof MessageCircle }[];
+}[] = [
+  {
+    sectionKey: "menu_section_live",
+    items: [
+      { id: "chat", labelKey: "tab_chat", icon: MessageCircle },
+      { id: "channels", labelKey: "tab_channels", icon: Bookmark },
+      { id: "events", labelKey: "tab_events", icon: Sparkles },
+      { id: "music", labelKey: "tab_music", icon: Music },
+    ],
+  },
+  {
+    sectionKey: "menu_section_settings",
+    items: [
+      { id: "notifications", labelKey: "tab_notifications", icon: Bell },
+      { id: "voices", labelKey: "tab_voices", icon: Mic },
+      { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
+      { id: "general", labelKey: "tab_general", icon: Settings },
+    ],
+  },
 ];
 
 /** Cronómetro "01:24:35" desde que se conectó — aislado en su propio
@@ -173,7 +191,7 @@ export function Header({ active, onChange }: Props) {
               </h1>
               {status === "connected" && username && sessionStartedAt ? (
                 <div className="flex items-center gap-1.5 mt-0.5 w-fit max-w-full">
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/30 flex-shrink-0">
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-error to-error-600 shadow-sm shadow-error/30 flex-shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse-soft" />
                     <span className="text-[10px] font-bold text-white uppercase tracking-wide">{statusConfig.text}</span>
                   </div>
@@ -195,7 +213,7 @@ export function Header({ active, onChange }: Props) {
             {/* Desktop: LIVE status lives here instead of the logo (sidebar already shows the logo) */}
             <div className="hidden lg:flex items-center gap-2.5">
               {status === "connected" ? (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/30">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-error to-error-600 shadow-sm shadow-error/30">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse-soft" />
                   <span className="text-xs font-bold text-white uppercase tracking-wide">{statusConfig.text}</span>
                 </div>
@@ -324,24 +342,31 @@ export function Header({ active, onChange }: Props) {
 
             {/* Lista con scroll */}
             <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-0.5">
-              {MENU_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const isActive = active === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelect(item.id)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-full transition-all duration-150 card-press ${
-                      isActive
-                        ? "bg-primary text-white shadow-md shadow-primary/25"
-                        : "text-text-soft hover:bg-bg-hover hover:text-text"
-                    }`}
-                  >
-                    <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
-                    <span className="text-sm font-semibold">{t(item.labelKey)}</span>
-                  </button>
-                );
-              })}
+              {MENU_SECTIONS.map((section, sIdx) => (
+                <div key={section.sectionKey} className={sIdx > 0 ? "mt-3" : undefined}>
+                  <p className="px-3.5 pb-1.5 text-[11px] font-semibold text-muted uppercase tracking-wide">
+                    {t(section.sectionKey)}
+                  </p>
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = active === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSelect(item.id)}
+                        className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-full transition-all duration-150 card-press ${
+                          isActive
+                            ? "bg-primary text-white shadow-md shadow-primary/25"
+                            : "text-text-soft hover:bg-bg-hover hover:text-text"
+                        }`}
+                      >
+                        <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
+                        <span className="text-sm font-semibold">{t(item.labelKey)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
               {isAdmin && (
                 <button
                   onClick={() => handleSelect("admin")}

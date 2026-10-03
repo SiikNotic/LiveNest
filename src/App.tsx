@@ -22,7 +22,6 @@ import { ResetPasswordView } from "./views/ResetPasswordView";
 import { UsernameRequiredView } from "./views/UsernameRequiredView";
 import { LandingPage } from "./views/LandingPage";
 import { useAuth } from "./lib/auth";
-import { Loader2 } from "lucide-react";
 
 export type TabId = "chat" | "channels" | "events" | "music" | "notifications" | "voices" | "reading" | "general" | "account" | "admin";
 
@@ -167,11 +166,36 @@ export default function App() {
     wasLoggedOutRef.current = !user;
   }, [user, loading, tab]);
 
-  // Show loading screen while auth initializes
+  // Pantalla de carga mientras arranca la sesión: un esqueleto que ya
+  // dibuja la forma real del header + lista de mensajes, en vez de un
+  // spinner sobre fondo vacío — reduce el "salto" de layout cuando el
+  // contenido de verdad aparece y da una sensación de carga más rápida.
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col bg-bg">
+        <div className="glass sticky top-0 z-30 px-4 pt-3.5 pb-3 safe-top">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-bg-soft animate-pulse" />
+              <div className="space-y-1.5">
+                <div className="w-20 h-3.5 rounded bg-bg-soft animate-pulse" />
+                <div className="w-14 h-2.5 rounded bg-bg-soft animate-pulse" />
+              </div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-bg-soft animate-pulse" />
+          </div>
+        </div>
+        <div className="flex-1 px-4 pt-4 space-y-3 max-w-md mx-auto w-full">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card flex items-start gap-3">
+              <div className="w-11 h-11 rounded-full bg-bg-soft animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="w-1/3 h-3 rounded bg-bg-soft animate-pulse" />
+                <div className="w-2/3 h-3 rounded bg-bg-soft animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

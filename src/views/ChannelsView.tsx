@@ -162,7 +162,7 @@ export function ChannelsView() {
           </div>
         </div>
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-          atLimit ? "text-amber-400 border-amber-500/30 bg-amber-500/10" : "text-muted border-border bg-bg-soft"
+          atLimit ? "text-warning-400 border-warning/30 bg-warning-400/10" : "text-muted border-border bg-bg-soft"
         }`}>
           {t("channels_count", { n: channels.length, max: maxChannels })}
         </span>
@@ -210,7 +210,7 @@ export function ChannelsView() {
         )}
 
         {!hasActiveLicense && atLimit && (
-          <div className="mt-3 flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 rounded-lg p-2.5">
+          <div className="mt-3 flex items-start gap-2 text-xs text-warning-400 bg-warning-400/10 rounded-lg p-2.5">
             <Crown className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{t("channels_upgrade_hint")}</span>
           </div>
