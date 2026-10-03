@@ -52,13 +52,23 @@ type AuthState = {
   isOwner: boolean;
   hasActiveLicense: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    username: string,
+    birthDate: string,
+    parentalConsent: boolean
+  ) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signInWithDiscord: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshLicense: () => Promise<void>;
   setUsername: (username: string) => Promise<{ error: string | null }>;
+  // Para cuentas que llegaron sin fecha de nacimiento (OAuth: Google/
+  // Discord nunca pasan por el formulario de registro de LiveNest donde
+  // se pide). Ver AgeConfirmationRequiredView.
+  confirmBirthDate: (birthDate: string, parentalConsent: boolean) => Promise<{ error: string | null }>;
   // true mientras el usuario está en medio de un flujo de "recuperar
   // contraseña" (llegó desde el link del email) — App.tsx usa esto para
   // mostrar la pantalla de "establecer nueva contraseña" en vez del
@@ -119,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           rank: "none",
           banned: false,
           created_at: new Date().toISOString(),
+          birth_date: null,
+          parental_consent: false,
         });
       }
     }
@@ -231,17 +243,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, username: string) => {
-    // El username viaja como metadata de auth.users (raw_user_meta_data) —
-    // de ahí lo lee handle_new_user() al crear la fila de profiles, para
-    // que quede seteado desde el primer momento en vez de en un segundo
-    // paso separado.
+  const signUp = useCallback(async (
+    email: string,
+    password: string,
+    username: string,
+    birthDate: string,
+    parentalConsent: boolean
+  ) => {
+    // Username y fecha de nacimiento viajan como metadata de auth.users
+    // (raw_user_meta_data) — de ahí los lee handle_new_user() al crear la
+    // fila de profiles. handle_new_user() vuelve a chequear la edad
+    // mínima y el consentimiento parental server-side (ver la migración
+    // add_age_verification_to_signup) — el chequeo de abajo en el
+    // formulario es solo para una respuesta inmediata, no es el único
+    // lugar donde se valida.
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: username.trim() } },
+      options: { data: { username: username.trim(), birth_date: birthDate, parental_consent: parentalConsent } },
     });
-    return { error: error?.message ?? null };
+    if (error) {
+      // GoTrue no reenvía el mensaje exacto de una excepción lanzada
+      // dentro del trigger — cualquier fallo ahí vuelve como un genérico
+      // "Database error saving new user". Como el gate del lado del
+      // cliente ya debería haber frenado estos casos antes de llegar
+      // acá, lo único que puede disparar esto de verdad es alguien
+      // saltándose el formulario y llamando a signUp() directo con datos
+      // alterados — un mensaje genérico es una respuesta razonable ahí.
+      if (/database error saving new user/i.test(error.message)) {
+        return { error: useI18n.getState().t("auth_err_age_generic") };
+      }
+      return { error: error.message };
+    }
+    return { error: null };
   }, []);
 
   // Para cuentas que llegaron sin username (Google, o una cuenta vieja de
@@ -259,6 +293,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error.message };
     }
     setProfile((p) => (p ? { ...p, username: clean } : p));
+    return { error: null };
+  }, [user]);
+
+  // Para cuentas sin fecha de nacimiento (típicamente OAuth: Google/Discord
+  // nunca pasan por el formulario de registro) — va por una RPC propia
+  // (confirm_birth_date) en vez de un update directo a profiles, porque la
+  // regla de "menor de 13 no puede" / "13 a 17 necesita consentimiento
+  // parental" tiene que valer server-side también, no solo en el checkbox
+  // del cliente.
+  const confirmBirthDate = useCallback(async (birthDate: string, parentalConsent: boolean) => {
+    if (!user) return { error: useI18n.getState().t("auth_err_not_authenticated") };
+    const { error } = await supabase.rpc("confirm_birth_date", {
+      p_birth_date: birthDate,
+      p_parental_consent: parentalConsent,
+    });
+    if (error) {
+      if (error.message.includes("signup_under_minimum_age")) {
+        return { error: useI18n.getState().t("auth_err_age_under_minimum") };
+      }
+      if (error.message.includes("signup_requires_parental_consent")) {
+        return { error: useI18n.getState().t("auth_err_age_needs_consent") };
+      }
+      return { error: error.message };
+    }
+    setProfile((p) => (p ? { ...p, birth_date: birthDate, parental_consent: parentalConsent } : p));
     return { error: null };
   }, [user]);
 
@@ -407,6 +466,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshProfile,
         refreshLicense,
         setUsername,
+        confirmBirthDate,
         passwordRecovery,
         clearPasswordRecovery,
         sendPasswordReset,

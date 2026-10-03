@@ -1,11 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 // La duración de la licencia se deriva ÚNICA Y EXCLUSIVAMENTE del priceId
 // real conocido acá abajo — NUNCA del "duration" que mande el cliente.
@@ -22,6 +18,7 @@ const PRICE_CONFIG: Record<string, { label: string; days: number | null; mode: "
 };
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }

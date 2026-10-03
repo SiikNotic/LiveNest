@@ -20,6 +20,7 @@ import { UserPanelView } from "./views/UserPanelView";
 import { AdminView } from "./views/AdminView";
 import { ResetPasswordView } from "./views/ResetPasswordView";
 import { UsernameRequiredView } from "./views/UsernameRequiredView";
+import { AgeConfirmationRequiredView } from "./views/AgeConfirmationRequiredView";
 import { LandingPage } from "./views/LandingPage";
 import { useAuth } from "./lib/auth";
 
@@ -239,6 +240,19 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col">
         <UsernameRequiredView />
+      </div>
+    );
+  }
+
+  // Mismo motivo que el gate de arriba: las cuentas de Google/Discord nunca
+  // pasan por el formulario de registro de LiveNest, así que nunca llega a
+  // pedírseles la fecha de nacimiento ahí. Se las frena acá hasta que la
+  // confirmen — confirm_birth_date() (RPC) vuelve a chequear la edad mínima
+  // y el consentimiento parental server-side, no solo en este formulario.
+  if (!profile?.birth_date) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <AgeConfirmationRequiredView />
       </div>
     );
   }

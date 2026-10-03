@@ -3,7 +3,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n, type Lang } from "../lib/i18n";
 import { isPasswordValid } from "../lib/passwordPolicy";
 import { PasswordRequirements } from "../components/PasswordRequirements";
-import { Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff, Cake } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -26,12 +26,32 @@ function DiscordIcon({ className }: { className?: string }) {
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,24}$/;
 
+// Mínimo absoluto para tener una cuenta (no hay forma de registrarse por
+// debajo de esto, ni con consentimiento de un adulto) y edad a partir de
+// la cual ya no hace falta el consentimiento parental.
+const MIN_SIGNUP_AGE = 13;
+const ADULT_AGE = 18;
+
+function calculateAge(birthDateStr: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDateStr)) return null;
+  const birth = new Date(birthDateStr + "T00:00:00");
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const hasHadBirthdayThisYear =
+    now.getMonth() > birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
+  if (!hasHadBirthdayThisYear) age -= 1;
+  return age;
+}
+
 export function AuthView() {
   const { signIn, signUp, signInWithGoogle, signInWithDiscord, sendPasswordReset } = useAuth();
   const { t, lang, setLang } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [parentalConsent, setParentalConsent] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +78,8 @@ export function AuthView() {
   }, []);
 
   const passwordOk = mode !== "signup" || isPasswordValid(password);
+  const age = mode === "signup" ? calculateAge(birthDate) : null;
+  const needsParentalConsent = age !== null && age >= MIN_SIGNUP_AGE && age < ADULT_AGE;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +92,20 @@ export function AuthView() {
     if (mode === "signup" && !isPasswordValid(password)) {
       setError(t("auth_err_password_weak"));
       return;
+    }
+    if (mode === "signup") {
+      if (age === null) {
+        setError(t("auth_err_birth_date_required"));
+        return;
+      }
+      if (age < MIN_SIGNUP_AGE) {
+        setError(t("auth_err_age_under_minimum"));
+        return;
+      }
+      if (needsParentalConsent && !parentalConsent) {
+        setError(t("auth_err_age_needs_consent"));
+        return;
+      }
     }
 
     if (mode === "forgot") {
@@ -90,7 +126,7 @@ export function AuthView() {
     const { error } =
       mode === "signin"
         ? await signIn(email.trim(), password)
-        : await signUp(email.trim(), password, username.trim());
+        : await signUp(email.trim(), password, username.trim(), birthDate, parentalConsent);
     if (error) {
       setError(error);
       setLoading(false);
@@ -251,6 +287,37 @@ export function AuthView() {
               </div>
             )}
 
+            {mode === "signup" && (
+              <div>
+                <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_birth_date_label")}</label>
+                <div className="relative">
+                  <Cake className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <input
+                    type="date"
+                    required
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    max={new Date().toISOString().slice(0, 10)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-bg-soft border border-border text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+                {age !== null && age < MIN_SIGNUP_AGE && (
+                  <p className="text-[11px] text-error-400 mt-1 px-1">{t("auth_err_age_under_minimum")}</p>
+                )}
+                {needsParentalConsent && (
+                  <label className="flex items-start gap-2 mt-2.5 px-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={parentalConsent}
+                      onChange={(e) => setParentalConsent(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-border accent-primary flex-shrink-0"
+                    />
+                    <span className="text-[11px] text-muted leading-relaxed">{t("auth_parental_consent_label")}</span>
+                  </label>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_email_label")}</label>
               <div className="relative">
@@ -324,7 +391,11 @@ export function AuthView() {
 
             <button
               type="submit"
-              disabled={loading || !passwordOk}
+              disabled={
+                loading ||
+                !passwordOk ||
+                (mode === "signup" && (age === null || age < MIN_SIGNUP_AGE || (needsParentalConsent && !parentalConsent)))
+              }
               className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 card-press"
             >
               {loading ? (

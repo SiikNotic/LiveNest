@@ -237,6 +237,8 @@ export type Profile = {
   rank: UserRank;
   banned: boolean;
   created_at: string;
+  birth_date: string | null;
+  parental_consent: boolean;
 };
 
 export type RankPermissions = {
