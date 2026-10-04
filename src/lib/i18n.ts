@@ -50,6 +50,22 @@ export const translations = {
     auth_recovery_link_expired: "Este enlace de recuperación ya expiró o no es válido. Solicita uno nuevo.",
     auth_password_requirements_title: "La contraseña debe tener:",
 
+    // Panel lateral (split-auth, solo visible en pantallas anchas) —
+    // testimonios de ejemplo, todavía no son citas reales de usuarios.
+    // Reemplazar por citas reales en cuanto existan.
+    auth_testimonial_1_quote: "Antes tenía que leer el chat yo misma entre canción y canción. Ahora LiveNest lo lee en vivo y yo me concentro en la música.",
+    auth_testimonial_1_author: "Mica R.",
+    auth_testimonial_1_role: "DJ en vivo · TikTok",
+    auth_testimonial_2_quote: "Los avisos de regalos y nuevos seguidores aparecen al toque, con prioridad. No se me pasa nada en medio de un directo largo.",
+    auth_testimonial_2_author: "Tomás G.",
+    auth_testimonial_2_role: "Streamer de juegos",
+    auth_testimonial_3_quote: "Lo dejo corriendo en una pestaña del celular mientras transmito y sigue leyendo en segundo plano sin cortarse.",
+    auth_testimonial_3_author: "Flor A.",
+    auth_testimonial_3_role: "Creadora de contenido",
+    auth_stat_live_label: "Lectura de chat en vivo",
+    auth_stat_bg_label: "Corre en segundo plano",
+    auth_stat_platform_label: "Web y Android",
+
     // Legal (Política de Privacidad / Términos de Servicio — public/privacy.html
     // y public/terms.html, páginas estáticas fuera del bundle de la SPA)
     legal_agree_prefix: "Al crear una cuenta, aceptas nuestros",
@@ -906,6 +922,21 @@ export const translations = {
     auth_forgot_success: "If an account exists with that email, we sent a link to reset your password. Check your inbox (and spam folder).",
     auth_recovery_link_expired: "This recovery link has expired or is invalid. Please request a new one.",
     auth_password_requirements_title: "Password must have:",
+
+    // Side panel (split-auth, wide screens only) — placeholder testimonials,
+    // not real user quotes yet. Swap for real ones once they exist.
+    auth_testimonial_1_quote: "I used to read the chat myself between songs. Now LiveNest reads it live and I just focus on the music.",
+    auth_testimonial_1_author: "Mica R.",
+    auth_testimonial_1_role: "Live DJ · TikTok",
+    auth_testimonial_2_quote: "Gift and new-follower alerts show up instantly, with priority. Nothing slips by during a long stream.",
+    auth_testimonial_2_author: "Tom G.",
+    auth_testimonial_2_role: "Gaming streamer",
+    auth_testimonial_3_quote: "I leave it running in a browser tab while I stream and it keeps reading in the background without dropping out.",
+    auth_testimonial_3_author: "Flor A.",
+    auth_testimonial_3_role: "Content creator",
+    auth_stat_live_label: "Live chat reading",
+    auth_stat_bg_label: "Runs in the background",
+    auth_stat_platform_label: "Web and Android",
 
     // Legal (Privacy Policy / Terms of Service — public/privacy.html and
     // public/terms.html, static pages outside the SPA bundle)

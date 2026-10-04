@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "../lib/auth";
-import { useI18n, type Lang } from "../lib/i18n";
+import { useI18n, type Lang, type TranslationKey } from "../lib/i18n";
 import { isPasswordValid } from "../lib/passwordPolicy";
 import { PasswordRequirements } from "../components/PasswordRequirements";
-import { Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff, Cake } from "lucide-react";
+import { useMotionPreference } from "../motion";
+import { Lock, Mail, User, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff, Cake, Radio, Infinity as InfinityIcon, Smartphone } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -42,6 +44,115 @@ function calculateAge(birthDateStr: string): number | null {
     now.getMonth() > birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
   if (!hasHadBirthdayThisYear) age -= 1;
   return age;
+}
+
+// Panel derecho del split-auth (solo en pantallas anchas, lg+): citas de
+// ejemplo (todavía no son reales, ver i18n.ts) que rotan solas, más una
+// tira de capacidades del producto "enmarcada" con el mismo tratamiento
+// .ln-key que usa el resto del sistema fijo de la landing. Reemplaza al
+// bloque "Authentication 3" de React Bits Pro que se pidió originalmente
+// (se descartó esa vía por ser una dependencia externa sin licencia
+// configurada) con el mismo resultado visual, construido nativo.
+const TESTIMONIALS: { quoteKey: TranslationKey; authorKey: TranslationKey; roleKey: TranslationKey; initial: string }[] = [
+  { quoteKey: "auth_testimonial_1_quote", authorKey: "auth_testimonial_1_author", roleKey: "auth_testimonial_1_role", initial: "M" },
+  { quoteKey: "auth_testimonial_2_quote", authorKey: "auth_testimonial_2_author", roleKey: "auth_testimonial_2_role", initial: "T" },
+  { quoteKey: "auth_testimonial_3_quote", authorKey: "auth_testimonial_3_author", roleKey: "auth_testimonial_3_role", initial: "F" },
+];
+
+const STATS: { icon: typeof Radio; value: string; labelKey: TranslationKey }[] = [
+  { icon: Radio, value: "LIVE", labelKey: "auth_stat_live_label" },
+  { icon: InfinityIcon, value: "24/7", labelKey: "auth_stat_bg_label" },
+  { icon: Smartphone, value: "2", labelKey: "auth_stat_platform_label" },
+];
+
+function AuthSidePanel() {
+  const { t } = useI18n();
+  const { reducedMotion } = useMotionPreference();
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    const interval = setInterval(() => setIndex((i) => (i + 1) % TESTIMONIALS.length), 6000);
+    return () => clearInterval(interval);
+  }, [reducedMotion]);
+
+  const current = TESTIMONIALS[index];
+
+  return (
+    <div
+      className="hidden lg:flex lg:w-[42%] relative flex-col justify-between overflow-hidden px-10 py-12 border-l"
+      style={{ borderColor: "var(--ln-border)" }}
+    >
+      {/* Mismo glow atmosférico oro+plata del hero de la landing, acá más
+          sutil porque hay texto encima a lo largo de toda la columna. */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(216,154,22,0.14), transparent), radial-gradient(ellipse 60% 40% at 100% 100%, rgba(199,202,209,0.08), transparent)",
+        }}
+      />
+
+      <span className="relative ln-badge ln-badge-gold w-fit">LiveNest</span>
+
+      <div className="relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={index}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="text-xl leading-relaxed text-white" style={{ letterSpacing: "0.1px" }}>
+              “{t(current.quoteKey)}”
+            </p>
+            <div className="mt-6 flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                style={{ background: "linear-gradient(135deg, var(--ln-gold), var(--ln-silver))", color: "var(--ln-iron)" }}
+              >
+                {current.initial}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{t(current.authorKey)}</p>
+                <p className="text-xs" style={{ color: "var(--ln-smoke)" }}>
+                  {t(current.roleKey)}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="flex gap-1.5 mt-7">
+          {TESTIMONIALS.map((item, i) => (
+            <button
+              key={item.quoteKey}
+              onClick={() => setIndex(i)}
+              aria-label={`${i + 1}`}
+              className="h-1.5 rounded-full transition-all duration-300"
+              style={{
+                width: i === index ? 20 : 7,
+                background: i === index ? "var(--ln-gold)" : "var(--ln-border)",
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="relative ln-key grid grid-cols-3 divide-x divide-[var(--ln-border)] py-4">
+        {STATS.map((s) => (
+          <div key={s.labelKey} className="flex flex-col items-center gap-1.5 px-2 text-center">
+            <s.icon className="w-4 h-4" style={{ color: "var(--ln-gold-bright)" }} />
+            <span className="text-sm font-semibold text-white">{s.value}</span>
+            <span className="text-[10px] leading-tight" style={{ color: "var(--ln-smoke)" }}>
+              {t(s.labelKey)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function AuthView() {
@@ -165,284 +276,301 @@ export function AuthView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
-      {/* Esta pantalla es ahora el único punto de entrada para quien no
-       * inició sesión (ver el gate en App.tsx) — sin loguearse no hay forma
-       * de llegar al selector de idioma que vive en el menú, así que hace
-       * falta uno acá también. */}
-      <div className="w-full max-w-sm flex justify-end mb-4">
-        <div className="inline-flex rounded-xl border border-border bg-bg-soft p-1 gap-1">
-          {(["es", "en"] as Lang[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                lang === l ? "bg-primary/15 text-primary" : "text-muted hover:text-text"
-              }`}
-            >
-              {l === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
-          <img src="/logo.png" alt="" className="w-16 h-16 rounded-3xl glow-primary mb-4" />
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Live<span className="text-gradient">Nest</span>
-          </h1>
-          <p className="text-sm text-muted mt-1">
-            {mode === "signin"
-              ? t("auth_signin_subtitle")
-              : mode === "signup"
-                ? t("auth_signup_subtitle")
-                : t("auth_forgot_title")}
-          </p>
-        </div>
-
-        {mode !== "forgot" && (
-          <>
-            <div className="space-y-2.5">
+    <div className="ln flex-1 flex min-h-screen">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 relative">
+        {/* Esta pantalla es ahora el único punto de entrada para quien no
+         * inició sesión (ver el gate en App.tsx) — sin loguearse no hay forma
+         * de llegar al selector de idioma que vive en el menú, así que hace
+         * falta uno acá también. */}
+        <div className="w-full max-w-sm flex justify-end mb-4">
+          <div className="inline-flex rounded-xl border p-1 gap-1" style={{ borderColor: "var(--ln-border)", background: "var(--ln-ink)" }}>
+            {(["es", "en"] as Lang[]).map((l) => (
               <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-                className="w-full py-3 rounded-xl bg-bg-soft border border-border text-sm font-semibold text-text hover:bg-bg-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
+                key={l}
+                onClick={() => setLang(l)}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
+                style={
+                  lang === l
+                    ? { background: "var(--ln-gold-tint)", color: "var(--ln-gold-bright)" }
+                    : { color: "var(--ln-smoke)" }
+                }
               >
-                {googleLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <GoogleIcon className="w-4 h-4" />
-                    {t("auth_continue_google")}
-                  </>
-                )}
+                {l === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
               </button>
-
-              <button
-                type="button"
-                onClick={handleDiscordSignIn}
-                disabled={discordLoading}
-                className="w-full py-3 rounded-xl bg-bg-soft border border-border text-sm font-semibold text-text hover:bg-bg-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
-              >
-                {discordLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <DiscordIcon className="w-4 h-4" />
-                    {t("auth_continue_discord")}
-                  </>
-                )}
-              </button>
-            </div>
-
-            {googleError && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs mt-3">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{googleError}</span>
-              </div>
-            )}
-            {discordError && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs mt-3">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{discordError}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted">{t("auth_or_email")}</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-          </>
-        )}
-
-        {mode === "forgot" && forgotSent ? (
-          <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-success-400/10 border border-success-400/20 text-success-400 text-xs">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{t("auth_forgot_success")}</span>
+            ))}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "forgot" && <p className="text-xs text-muted -mt-1">{t("auth_forgot_subtitle")}</p>}
+        </div>
 
-            {mode === "signup" && (
-              <div>
-                <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_username_label")}</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                  <input
-                    type="text"
-                    required
-                    minLength={3}
-                    maxLength={24}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder={t("auth_username_placeholder")}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-bg-soft border border-border text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <p className="text-[11px] text-muted mt-1 px-1">{t("auth_username_hint")}</p>
-              </div>
-            )}
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center mb-8">
+            <img src="/logo.png" alt="" className="w-16 h-16 rounded-3xl mb-4" />
+            <h1 className="text-2xl font-semibold tracking-tight text-white">
+              Live<span style={{ color: "var(--ln-gold)" }}>Nest</span>
+            </h1>
+            <p className="text-sm mt-1" style={{ color: "var(--ln-smoke)" }}>
+              {mode === "signin"
+                ? t("auth_signin_subtitle")
+                : mode === "signup"
+                  ? t("auth_signup_subtitle")
+                  : t("auth_forgot_title")}
+            </p>
+          </div>
 
-            {mode === "signup" && (
-              <div>
-                <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_birth_date_label")}</label>
-                <div className="relative">
-                  <Cake className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                  <input
-                    type="date"
-                    required
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    max={new Date().toISOString().slice(0, 10)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-bg-soft border border-border text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                {age !== null && age < MIN_SIGNUP_AGE && (
-                  <p className="text-[11px] text-error-400 mt-1 px-1">{t("auth_err_age_under_minimum")}</p>
-                )}
-                {needsParentalConsent && (
-                  <label className="flex items-start gap-2 mt-2.5 px-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={parentalConsent}
-                      onChange={(e) => setParentalConsent(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-border accent-primary flex-shrink-0"
-                    />
-                    <span className="text-[11px] text-muted leading-relaxed">{t("auth_parental_consent_label")}</span>
-                  </label>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_email_label")}</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t("auth_email_placeholder")}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-bg-soft border border-border text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
-                />
-              </div>
-            </div>
-
-            {mode !== "forgot" && (
-              <div>
-                <label className="text-xs font-semibold text-muted mb-1.5 block">{t("auth_password_label")}</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    minLength={mode === "signup" ? 8 : undefined}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-3 rounded-xl bg-bg-soft border border-border text-sm text-text placeholder:text-muted focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    tabIndex={-1}
-                    aria-label={showPassword ? t("auth_hide_password") : t("auth_show_password")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-muted hover:text-text transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                {mode === "signup" && (
-                  <>
-                    <p className="text-[11px] text-muted mt-1.5 px-1">{t("auth_password_requirements_title")}</p>
-                    <PasswordRequirements password={password} />
-                  </>
-                )}
-              </div>
-            )}
-
-            {mode === "signin" && (
-              <div className="text-right -mt-2">
+          {mode !== "forgot" && (
+            <>
+              <div className="space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => switchMode("forgot")}
-                  className="text-[11px] text-muted hover:text-primary transition-colors"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  className="w-full py-3 rounded-xl border text-sm font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
+                  style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
                 >
-                  {t("auth_forgot_password_link")}
+                  {googleLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <GoogleIcon className="w-4 h-4" />
+                      {t("auth_continue_google")}
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDiscordSignIn}
+                  disabled={discordLoading}
+                  className="w-full py-3 rounded-xl border text-sm font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2.5 card-press"
+                  style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
+                >
+                  {discordLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <DiscordIcon className="w-4 h-4" />
+                      {t("auth_continue_discord")}
+                    </>
+                  )}
                 </button>
               </div>
-            )}
 
-            {error && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-error-400/10 border border-error-400/20 text-error-400 text-xs">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                !passwordOk ||
-                (mode === "signup" && (age === null || age < MIN_SIGNUP_AGE || (needsParentalConsent && !parentalConsent)))
-              }
-              className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 card-press"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : mode === "signin" ? (
-                t("auth_signin_button")
-              ) : mode === "signup" ? (
-                t("auth_signup_button")
-              ) : (
-                t("auth_forgot_button")
+              {googleError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-400/10 border border-red-400/20 text-red-400 text-xs mt-3">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{googleError}</span>
+                </div>
               )}
-            </button>
-          </form>
-        )}
+              {discordError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-400/10 border border-red-400/20 text-red-400 text-xs mt-3">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{discordError}</span>
+                </div>
+              )}
 
-        <div className="mt-6 text-center">
-          {mode === "forgot" ? (
-            <button onClick={() => switchMode("signin")} className="text-xs text-muted hover:text-primary transition-colors">
-              {t("auth_forgot_back_to_signin")}
-            </button>
-          ) : (
-            <button
-              onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
-              className="text-xs text-muted hover:text-primary transition-colors"
-            >
-              {mode === "signin" ? t("auth_toggle_to_signup") : t("auth_toggle_to_signin")}
-            </button>
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px" style={{ background: "var(--ln-border)" }} />
+                <span className="text-xs" style={{ color: "var(--ln-smoke)" }}>{t("auth_or_email")}</span>
+                <div className="flex-1 h-px" style={{ background: "var(--ln-border)" }} />
+              </div>
+            </>
           )}
-        </div>
 
-        {/* Páginas legales estáticas (public/terms.html, public/privacy.html) —
-         * viven fuera del bundle de la SPA a propósito, para que sean
-         * accesibles como URL directa aunque la app todavía no haya
-         * cargado (lo que además espera Google para verificar el consent
-         * screen de OAuth). */}
-        <p className="mt-6 text-center text-[11px] text-muted-soft leading-relaxed">
-          {t("legal_agree_prefix")}{" "}
-          <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-muted hover:text-primary underline transition-colors">
-            {t("legal_terms")}
-          </a>{" "}
-          {t("legal_and")}{" "}
-          <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-muted hover:text-primary underline transition-colors">
-            {t("legal_privacy")}
-          </a>
-          .
-        </p>
+          {mode === "forgot" && forgotSent ? (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-emerald-400/10 border border-emerald-400/20 text-emerald-400 text-xs">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{t("auth_forgot_success")}</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "forgot" && <p className="text-xs -mt-1" style={{ color: "var(--ln-smoke)" }}>{t("auth_forgot_subtitle")}</p>}
+
+              {mode === "signup" && (
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--ln-smoke)" }}>{t("auth_username_label")}</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--ln-smoke)" }} />
+                    <input
+                      type="text"
+                      required
+                      minLength={3}
+                      maxLength={24}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder={t("auth_username_placeholder")}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm text-white placeholder:text-[var(--ln-smoke)] focus:outline-none transition-colors"
+                      style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
+                    />
+                  </div>
+                  <p className="text-[11px] mt-1 px-1" style={{ color: "var(--ln-smoke)" }}>{t("auth_username_hint")}</p>
+                </div>
+              )}
+
+              {mode === "signup" && (
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--ln-smoke)" }}>{t("auth_birth_date_label")}</label>
+                  <div className="relative">
+                    <Cake className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--ln-smoke)" }} />
+                    <input
+                      type="date"
+                      required
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      max={new Date().toISOString().slice(0, 10)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm text-white placeholder:text-[var(--ln-smoke)] focus:outline-none transition-colors"
+                      style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
+                    />
+                  </div>
+                  {age !== null && age < MIN_SIGNUP_AGE && (
+                    <p className="text-[11px] text-red-400 mt-1 px-1">{t("auth_err_age_under_minimum")}</p>
+                  )}
+                  {needsParentalConsent && (
+                    <label className="flex items-start gap-2 mt-2.5 px-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={parentalConsent}
+                        onChange={(e) => setParentalConsent(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded flex-shrink-0"
+                        style={{ borderColor: "var(--ln-border)", accentColor: "var(--ln-gold)" }}
+                      />
+                      <span className="text-[11px] leading-relaxed" style={{ color: "var(--ln-smoke)" }}>{t("auth_parental_consent_label")}</span>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--ln-smoke)" }}>{t("auth_email_label")}</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--ln-smoke)" }} />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t("auth_email_placeholder")}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border text-sm text-white placeholder:text-[var(--ln-smoke)] focus:outline-none transition-colors"
+                    style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
+                  />
+                </div>
+              </div>
+
+              {mode !== "forgot" && (
+                <div>
+                  <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--ln-smoke)" }}>{t("auth_password_label")}</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--ln-smoke)" }} />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={mode === "signup" ? 8 : undefined}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-10 py-3 rounded-xl border text-sm text-white placeholder:text-[var(--ln-smoke)] focus:outline-none transition-colors"
+                      style={{ background: "var(--ln-ink)", borderColor: "var(--ln-border)" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? t("auth_hide_password") : t("auth_show_password")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center transition-colors hover:text-white"
+                      style={{ color: "var(--ln-smoke)" }}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {mode === "signup" && (
+                    <>
+                      <p className="text-[11px] mt-1.5 px-1" style={{ color: "var(--ln-smoke)" }}>{t("auth_password_requirements_title")}</p>
+                      <PasswordRequirements password={password} />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {mode === "signin" && (
+                <div className="text-right -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="text-[11px] transition-colors hover:text-white"
+                    style={{ color: "var(--ln-smoke)" }}
+                  >
+                    {t("auth_forgot_password_link")}
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-400/10 border border-red-400/20 text-red-400 text-xs">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  !passwordOk ||
+                  (mode === "signup" && (age === null || age < MIN_SIGNUP_AGE || (needsParentalConsent && !parentalConsent)))
+                }
+                className="ln-btn-primary w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 card-press"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : mode === "signin" ? (
+                  t("auth_signin_button")
+                ) : mode === "signup" ? (
+                  t("auth_signup_button")
+                ) : (
+                  t("auth_forgot_button")
+                )}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-6 text-center">
+            {mode === "forgot" ? (
+              <button onClick={() => switchMode("signin")} className="text-xs transition-colors hover:text-white" style={{ color: "var(--ln-smoke)" }}>
+                {t("auth_forgot_back_to_signin")}
+              </button>
+            ) : (
+              <button
+                onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
+                className="text-xs transition-colors hover:text-white"
+                style={{ color: "var(--ln-smoke)" }}
+              >
+                {mode === "signin" ? t("auth_toggle_to_signup") : t("auth_toggle_to_signin")}
+              </button>
+            )}
+          </div>
+
+          {/* Páginas legales estáticas (public/terms.html, public/privacy.html) —
+           * viven fuera del bundle de la SPA a propósito, para que sean
+           * accesibles como URL directa aunque la app todavía no haya
+           * cargado (lo que además espera Google para verificar el consent
+           * screen de OAuth). */}
+          <p className="mt-6 text-center text-[11px] leading-relaxed" style={{ color: "var(--ln-ash)" }}>
+            {t("legal_agree_prefix")}{" "}
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline transition-colors hover:text-white" style={{ color: "var(--ln-ash)" }}>
+              {t("legal_terms")}
+            </a>{" "}
+            {t("legal_and")}{" "}
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline transition-colors hover:text-white" style={{ color: "var(--ln-ash)" }}>
+              {t("legal_privacy")}
+            </a>
+            .
+          </p>
+        </div>
       </div>
+
+      <AuthSidePanel />
     </div>
   );
 }
