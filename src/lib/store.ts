@@ -9,6 +9,7 @@ import { ytPlayer } from "./youtubePlayer";
 import { useI18n, type TranslationKey } from "./i18n";
 import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
 import { startBackgroundService, stopBackgroundService } from "./backgroundService";
+import { startBackgroundAudio, stopBackgroundAudio } from "./backgroundAudio";
 import { normalizeOverlayConfig, type OverlayEventType } from "./overlayConfig";
 import { fillAlertPhrase, resolveOverlayAlert } from "./alertPhrase";
 
@@ -311,6 +312,13 @@ export const useStore = create<State>((set, get) => ({
     // anterior, y el nuevo ttsEpoch invalida cualquier mensaje que aún
     // estuviera en la cola vieja.
     voiceManager.stop();
+    // Tiene que llamarse acá, síncrono y sin ningún await antes — recién
+    // acá todavía estamos dentro del mismo gesto del usuario (el click en
+    // "Conectar"), que es lo que exige la política de autoplay de los
+    // navegadores para poder reproducir audio. Si se moviera a más abajo
+    // (ej. al callback onStatus de la conexión, que dispara async después)
+    // el navegador lo bloquearía en silencio.
+    startBackgroundAudio(clean);
     const token = ++connectToken;
     set((s) => ({
       status: "connecting",
@@ -351,6 +359,7 @@ export const useStore = create<State>((set, get) => ({
       connection = null;
       void disableKeepAwake();
       void stopBackgroundService();
+      stopBackgroundAudio();
       set({
         status: "disconnected",
         reconnecting: false,
@@ -400,6 +409,7 @@ export const useStore = create<State>((set, get) => ({
         // no llegar a verlo si estabas mirando otra cosa.
         void disableKeepAwake();
         void stopBackgroundService();
+        stopBackgroundAudio();
         set({ notLiveUser: user, notLiveReason: "offline", status: "disconnected", reconnecting: false });
       },
       onEvent: (event: TikTokEvent) => {
@@ -460,6 +470,7 @@ export const useStore = create<State>((set, get) => ({
     }
     void disableKeepAwake();
     void stopBackgroundService();
+    stopBackgroundAudio();
     // Cortar la voz que esté sonando y vaciar la cola de lectura. El
     // ttsEpoch nuevo invalida cualquier mensaje que ya estuviera en la
     // cola o a medio procesar en processQueue().
@@ -509,6 +520,7 @@ export const useStore = create<State>((set, get) => ({
     }
     void disableKeepAwake();
     void stopBackgroundService();
+    stopBackgroundAudio();
     voiceManager.stop();
     ytPlayer.stop();
     if (saveTimer) {
