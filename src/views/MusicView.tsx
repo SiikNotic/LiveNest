@@ -12,6 +12,7 @@ import {
   Loader2, CheckCircle2, Repeat, Trash2,
 } from "lucide-react";
 import type { SongRequest } from "../lib/supabase";
+import { AnimatePresence, motion, DURATION, EASE } from "../motion";
 
 // El tope de altura de la miniatura de más abajo es un ajuste solo para
 // la versión web (paneles del dashboard de escritorio/tablet) — en la app
@@ -291,12 +292,19 @@ export function MusicView() {
                 con el ancho de la columna. */}
             <div className={`relative w-full aspect-video ${isNative ? "" : "max-h-[38vh]"} bg-black rounded-t-2xl overflow-hidden flex items-center justify-center`}>
               {currentSong && currentSong.video_id ? (
-                <img
-                  src={`https://img.youtube.com/vi/${currentSong.video_id}/hqdefault.jpg`}
-                  alt={currentSong.video_title ?? ""}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                />
+                <AnimatePresence mode="popLayout">
+                  <motion.img
+                    key={currentSong.video_id}
+                    src={`https://img.youtube.com/vi/${currentSong.video_id}/hqdefault.jpg`}
+                    alt={currentSong.video_title ?? ""}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    initial={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
+                    animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+                    transition={{ duration: DURATION.slow, ease: EASE.out }}
+                  />
+                </AnimatePresence>
               ) : (
                 <div className="flex flex-col items-center justify-center text-muted">
                   <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2.5">

@@ -11,6 +11,7 @@ export const translations = {
     status_connected: "En vivo",
     status_error: "Error",
     reading: "Leyendo",
+    voice_error: "Error de voz",
 
     // Auth / login
     auth_signin_subtitle: "Inicia sesión para continuar",
@@ -203,6 +204,23 @@ export const translations = {
     menu_close: "Cerrar menú",
     logout: "Cerrar sesión",
     language: "Idioma",
+
+    // Onboarding cinematográfico (6 pantallas, solo la primera vez)
+    onboarding_skip: "Saltar",
+    onboarding_next: "Siguiente",
+    onboarding_get_started: "Empezar",
+    onboarding_live_title: "Tu transmisión, en vivo.",
+    onboarding_live_desc: "LiveNest te acompaña en cada directo de TikTok — conectate en segundos y transmití con todo bajo control.",
+    onboarding_chat_title: "El chat, nunca se te escapa.",
+    onboarding_chat_desc: "Cada mensaje de tu audiencia llega al instante, filtrado y listo para leerse en voz alta mientras vos te concentrás en transmitir.",
+    onboarding_voice_title: "Una voz que lee por vos.",
+    onboarding_voice_desc: "Motor de voz en tiempo real — elegí entre decenas de voces naturales y dejá que LiveNest le hable a tu audiencia.",
+    onboarding_music_title: "La música que pide tu gente.",
+    onboarding_music_desc: "Tu audiencia pide canciones por el chat y vos manejás la cola como quieras, sin salir del directo.",
+    onboarding_gifts_title: "Cada regalo, anunciado al instante.",
+    onboarding_gifts_desc: "Regalos, seguidores y suscripciones se anuncian solos — con sonido y alerta, para que nadie se los pierda.",
+    onboarding_start_title: "Todo listo para transmitir.",
+    onboarding_start_desc: "Conectá tu canal de TikTok y empezá — LiveNest se encarga del resto.",
 
     // Menú lateral: encabezados de sección (agrupan los tabs de abajo)
     menu_section_live: "Transmisión",
@@ -851,6 +869,7 @@ export const translations = {
     status_connected: "Live",
     status_error: "Error",
     reading: "Reading",
+    voice_error: "Voice error",
 
     auth_signin_subtitle: "Sign in to continue",
     auth_signup_subtitle: "Create your account",
@@ -1037,6 +1056,23 @@ export const translations = {
     menu_close: "Close menu",
     logout: "Log out",
     language: "Language",
+
+    // Cinematic onboarding (6 screens, first run only)
+    onboarding_skip: "Skip",
+    onboarding_next: "Next",
+    onboarding_get_started: "Get Started",
+    onboarding_live_title: "Your stream, live.",
+    onboarding_live_desc: "LiveNest rides along on every TikTok Live — connect in seconds and start streaming with everything under control.",
+    onboarding_chat_title: "Chat that never slips by.",
+    onboarding_chat_desc: "Every message from your audience arrives instantly, filtered and ready to be read out loud while you focus on streaming.",
+    onboarding_voice_title: "A voice that reads for you.",
+    onboarding_voice_desc: "Real-time voice engine — pick from dozens of natural voices and let LiveNest speak to your audience.",
+    onboarding_music_title: "The music your audience requests.",
+    onboarding_music_desc: "Your audience requests songs through chat and you manage the queue however you like, without leaving the stream.",
+    onboarding_gifts_title: "Every gift, announced instantly.",
+    onboarding_gifts_desc: "Gifts, followers and subs announce themselves — with sound and an alert, so nothing slips by.",
+    onboarding_start_title: "Ready to go live.",
+    onboarding_start_desc: "Connect your TikTok channel and start — LiveNest takes care of the rest.",
 
     menu_section_live: "Live",
     menu_section_settings: "Settings",

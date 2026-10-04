@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../lib/store";
 import { useI18n, type Lang } from "../lib/i18n";
-import { VolumeX, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight, Clock } from "lucide-react";
+import { VolumeX, AlertTriangle, Users, Menu, X, MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Globe, Crown, Shield, Bookmark, ChevronRight, Clock } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { listSavedChannels } from "../lib/savedChannels";
+import { AnimatePresence, motion, SPRING } from "../motion";
 
 // TikTok bloquea la carga directa de sus imágenes desde otros sitios
 // (hotlink) — este proxy público las trae desde el servidor, evitando ese
@@ -82,6 +83,7 @@ export function Header({ active, onChange }: Props) {
   const username = useStore((s) => s.username);
   const viewerCount = useStore((s) => s.viewerCount);
   const isSpeaking = useStore((s) => s.isSpeaking);
+  const voiceError = useStore((s) => s.voiceError);
   const stopSpeaking = useStore((s) => s.stopSpeaking);
   const sessionStartedAt = useStore((s) => s.sessionStartedAt);
   const { lang, setLang, t } = useI18n();
@@ -231,24 +233,43 @@ export function Header({ active, onChange }: Props) {
 
           {/* Right: status + account */}
           <div className="flex items-center gap-2 shrink-0">
-            {isSpeaking && (
-              <button
-                onClick={stopSpeaking}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/15 text-primary text-xs font-semibold animate-slide-down card-press"
-              >
-                <div className="flex items-end gap-[2px] h-3.5 flex-shrink-0">
-                  {READING_WAVE_BARS.map((bar, i) => (
-                    <span
-                      key={i}
-                      className="w-[2px] h-3.5 rounded-full bg-primary origin-bottom animate-wave-bar"
-                      style={{ animationDelay: `${bar.delay}s`, animationDuration: `${bar.duration}s` }}
-                    />
-                  ))}
-                </div>
-                <span className="hidden sm:inline">{t("reading")}</span>
-                <VolumeX className="w-3.5 h-3.5" />
-              </button>
-            )}
+            {/* El indicador solo existe en el DOM mientras el motor de voz
+                está hablando de verdad (isSpeaking) o acaba de fallar
+                (voiceError) — nunca una animación de "escuchando" falsa y
+                permanente. Entrada/salida con spring en vez de la clase
+                CSS de siempre, para que se sienta como un elemento físico
+                apareciendo, no un fade genérico. */}
+            <AnimatePresence>
+              {(isSpeaking || voiceError) && (
+                <motion.button
+                  onClick={stopSpeaking}
+                  initial={{ opacity: 0, scale: 0.7, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={SPRING.bouncy}
+                  whileTap={{ scale: 0.95 }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold ${
+                    voiceError ? "bg-error/15 text-error-400" : "bg-primary/15 text-primary"
+                  }`}
+                >
+                  {voiceError ? (
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  ) : (
+                    <div className="flex items-end gap-[2px] h-3.5 flex-shrink-0">
+                      {READING_WAVE_BARS.map((bar, i) => (
+                        <span
+                          key={i}
+                          className="w-[2px] h-3.5 rounded-full bg-primary origin-bottom animate-wave-bar"
+                          style={{ animationDelay: `${bar.delay}s`, animationDuration: `${bar.duration}s` }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <span className="hidden sm:inline">{voiceError ? t("voice_error") : t("reading")}</span>
+                  {!voiceError && <VolumeX className="w-3.5 h-3.5" />}
+                </motion.button>
+              )}
+            </AnimatePresence>
             {status === "connected" && viewerCount > 0 && (
               <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-bg-soft border border-border">
                 <Users className="w-3.5 h-3.5 text-accent" />

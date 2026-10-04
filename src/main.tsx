@@ -5,6 +5,7 @@ import { AuthProvider } from "./lib/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppUpdateModal } from "./components/AppUpdateModal";
 import { OverlayPage } from "./views/OverlayPage";
+import { MotionPreferenceProvider } from "./motion";
 import "./index.css";
 
 // La página de overlay para OBS/Streamlabs (?overlay=<token> en la URL,
@@ -24,12 +25,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       // muestre la pantalla de error en vez de una pantalla negra — ver el
       // comentario dentro de ErrorBoundary.tsx.
       <ErrorBoundary>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-        {/* Afuera de AuthProvider a propósito: tiene que verse aunque la
-            persona esté en la pantalla de login (ver AppUpdateModal.tsx). */}
-        <AppUpdateModal />
+        <MotionPreferenceProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+          {/* Afuera de AuthProvider a propósito: tiene que verse aunque la
+              persona esté en la pantalla de login (ver AppUpdateModal.tsx). */}
+          <AppUpdateModal />
+        </MotionPreferenceProvider>
       </ErrorBoundary>
     )}
   </React.StrictMode>

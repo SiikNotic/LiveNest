@@ -10,6 +10,8 @@ import { EventsView } from "./views/EventsView";
 import { MusicView } from "./views/MusicView";
 import { NotificationsView } from "./views/NotificationsView";
 import { Header } from "./components/Header";
+import { LiveEventToasts } from "./components/LiveEventToasts";
+import { PageTransition } from "./motion";
 import { MusicDock } from "./components/MusicDock";
 import { Sidebar } from "./components/Sidebar";
 import { DesktopDashboard } from "./components/DesktopDashboard";
@@ -22,6 +24,8 @@ import { ResetPasswordView } from "./views/ResetPasswordView";
 import { UsernameRequiredView } from "./views/UsernameRequiredView";
 import { AgeConfirmationRequiredView } from "./views/AgeConfirmationRequiredView";
 import { LandingPage } from "./views/LandingPage";
+import { OnboardingView } from "./views/OnboardingView";
+import { hasSeenOnboarding } from "./components/onboarding/onboardingScreens";
 import { useAuth } from "./lib/auth";
 
 export type TabId = "chat" | "channels" | "events" | "music" | "notifications" | "voices" | "reading" | "general" | "account" | "admin";
@@ -42,6 +46,13 @@ export default function App() {
     if (typeof window !== "undefined" && /error=|access_token=/.test(window.location.hash)) return true;
     return false;
   });
+  // El onboarding cinematográfico se muestra una sola vez por cuenta —
+  // null mientras no sabemos todavía (evita un parpadeo "sin onboarding →
+  // con onboarding" apenas carga `user`). Se decide recién cuando ya
+  // pasamos los demás gates (username/fecha de nacimiento confirmados),
+  // así nunca se le muestra a alguien que todavía ni terminó de crear la
+  // cuenta.
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const loadSettings = useStore((s) => s.loadSettings);
   const loadFilters = useStore((s) => s.loadFilters);
   const loadTemplates = useStore((s) => s.loadTemplates);
@@ -59,6 +70,14 @@ export default function App() {
     loadSongQueue();
     loadTtsUsage();
   }, [user, loadSettings, loadFilters, loadTemplates, loadEvents, loadSongQueue, loadTtsUsage]);
+
+  // Se decide una sola vez por sesión, recién cuando ya hay username y
+  // fecha de nacimiento confirmados (profile.username/birth_date) — antes
+  // de eso no tiene sentido ni se llega a ver, esos gates devuelven antes.
+  useEffect(() => {
+    if (!user || !profile?.username || !profile?.birth_date) return;
+    if (showOnboarding === null) setShowOnboarding(!hasSeenOnboarding(user.id));
+  }, [user, profile?.username, profile?.birth_date, showOnboarding]);
 
   useEffect(() => {
     if (playerContainerRef.current) {
@@ -257,6 +276,10 @@ export default function App() {
     );
   }
 
+  if (showOnboarding) {
+    return <OnboardingView userId={user.id} onDone={() => setShowOnboarding(false)} />;
+  }
+
   return (
     <div className="min-h-screen flex relative">
       <div className="fixed overflow-hidden pointer-events-none" style={{ left: -9999, top: -9999, width: 200, height: 200 }} aria-hidden>
@@ -267,6 +290,10 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Header active={tab} onChange={setTab} />
+        {/* Vive acá, no adentro de ninguna pestaña puntual — un regalo/sub
+            puede llegar mientras la persona está mirando Música o Ajustes,
+            no solo en la pestaña de Eventos. */}
+        <LiveEventToasts />
 
         {/* El padding inferior extra de los <main> de abajo suma el
             safe-area-inset-bottom del sistema: en un teléfono con barra de
@@ -298,22 +325,28 @@ export default function App() {
                 {/* El dock vive acá, fuera de cada vista, para que la canción
                     siga sonando y visible al cambiar entre Chat y Eventos —
                     en Música ya está el reproductor grande, así que no se
-                    duplica ahí. */}
+                    duplica ahí. Fuera del PageTransition a propósito: no
+                    tiene que re-animarse en cada cambio de pestaña, solo
+                    cuando cambia la canción (ver MusicDock.tsx). */}
                 {tab !== "music" && <MusicDock />}
-                {tab === "chat" && <ChatView />}
-                {tab === "events" && <EventsView />}
-                {tab === "music" && <MusicView />}
+                <PageTransition tabKey={tab}>
+                  {tab === "chat" && <ChatView />}
+                  {tab === "events" && <EventsView />}
+                  {tab === "music" && <MusicView />}
+                </PageTransition>
               </div>
             </main>
           </>
         ) : (
           <main className="flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] lg:px-6 overflow-y-auto">
             <div className="max-w-2xl md:max-w-3xl mx-auto w-full">
-              {tab === "channels" && <ChannelsView />}
-              {tab === "notifications" && <NotificationsView />}
-              {tab === "voices" && <VoicesView />}
-              {tab === "reading" && <ReadingView />}
-              {tab === "general" && <GeneralView />}
+              <PageTransition tabKey={tab}>
+                {tab === "channels" && <ChannelsView />}
+                {tab === "notifications" && <NotificationsView />}
+                {tab === "voices" && <VoicesView />}
+                {tab === "reading" && <ReadingView />}
+                {tab === "general" && <GeneralView />}
+              </PageTransition>
             </div>
           </main>
         )}

@@ -387,16 +387,33 @@
     box-shadow: var(--shadow-card);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    transition: box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease, transform 0.2s ease;
+    /* El release (volver a tamaño normal) usa una curva con un poquitito
+       de overshoot — se siente "físico" sin JS, sin ser un rebote de
+       videojuego. El press en sí (ver .card-press:active) es casi
+       instantáneo, como responde algo real al tacto. */
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, background-color 0.25s ease,
+      transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   .card-hover:hover {
     border-color: var(--c-primary);
-    box-shadow: 0 4px 20px var(--c-glow), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    box-shadow: 0 10px 28px var(--c-glow), 0 0 0 1px rgba(255,255,255,0.03) inset;
+    transform: translateY(-2px);
   }
-  .card-press:active { transform: scale(0.98); }
+  .card-press:active {
+    transform: scale(0.98);
+    transition-duration: 0.1s;
+  }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
+    /* El press (:active) es casi instantáneo — algo real responde al
+       toque sin demora. El release usa un resorte real (un poco de
+       overshoot, sin pasarse de rosca) en vez de volver en línea recta —
+       en TODOS los botones de la app de una sola vez, sin tocar cada
+       componente. */
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  .btn:active { transition-duration: 0.08s; }
   .btn-primary {
     @apply btn bg-primary text-bg hover:bg-primary-600;
     box-shadow: 0 2px 12px var(--c-glow);

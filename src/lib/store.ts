@@ -90,6 +90,12 @@ type State = {
   unreadCount: number;
   error: string | null;
   isSpeaking: boolean;
+  // Aparte de `error` (genérico, se usa para cualquier falla de la app) —
+  // esto es específicamente "el motor de voz falló ahora mismo", para que
+  // el indicador de lectura (Header.tsx) pueda mostrar un estado de error
+  // propio en vez de solo depender del toast genérico de arriba. Se
+  // autolimpia solo, mismo patrón que `error`.
+  voiceError: boolean;
   speakQueue: { text: string; voiceId?: string; epoch: number }[];
   processingQueue: boolean;
   notLiveUser: string | null;
@@ -289,6 +295,7 @@ export const useStore = create<State>((set, get) => ({
   unreadCount: 0,
   error: null,
   isSpeaking: false,
+  voiceError: false,
   speakQueue: [],
   processingQueue: false,
   notLiveUser: null,
@@ -632,8 +639,9 @@ export const useStore = create<State>((set, get) => ({
       // siempre.
       console.error("[speakMessage] TTS error:", err);
       const ttsErrorMsg = useI18n.getState().t("store_err_tts_failed");
-      set({ error: ttsErrorMsg });
+      set({ error: ttsErrorMsg, voiceError: true });
       setTimeout(() => set((s) => (s.error === ttsErrorMsg ? { error: null } : {})), 6000);
+      setTimeout(() => set({ voiceError: false }), 2500);
     }
     set({ isSpeaking: false });
   },
@@ -836,8 +844,9 @@ export const useStore = create<State>((set, get) => ({
         // del live y la app dejó de leer mensajes, como que se muteó".
         console.error("[processQueue] TTS error:", err);
         const ttsErrorMsg = useI18n.getState().t("store_err_tts_failed");
-        set({ error: ttsErrorMsg });
+        set({ error: ttsErrorMsg, voiceError: true });
         setTimeout(() => set((s) => (s.error === ttsErrorMsg ? { error: null } : {})), 6000);
+        setTimeout(() => set({ voiceError: false }), 2500);
       }
     }
     const after = get();

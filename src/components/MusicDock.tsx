@@ -3,6 +3,7 @@ import { useStore } from "../lib/store";
 import { useI18n } from "../lib/i18n";
 import { ytPlayer, type PlayerState } from "../lib/youtubePlayer";
 import { Play, Pause, SkipForward, X, Music } from "lucide-react";
+import { AnimatePresence, motion, DURATION, EASE } from "../motion";
 
 // Dock flotante con la canción que está sonando ahora — vive montado una
 // sola vez a nivel de App (no dentro de cada vista), así que la música
@@ -27,13 +28,25 @@ export function MusicDock() {
     <div className="card p-0 overflow-hidden animate-slide-down border-primary/20 mb-3">
       <div className="flex items-center gap-3 p-3">
         <div className="relative w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 bg-black">
-          <img
-            src={`https://img.youtube.com/vi/${currentSong.video_id}/default.jpg`}
-            alt={currentSong.video_title ?? currentSong.query}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+          {/* La tapa vieja se va con blur+scale, la nueva entra desde un
+              poco más chica y desenfocada hasta asentarse nítida — nunca
+              un corte seco ni un fundido genérico. `mode="popLayout"`
+              para que ninguna de las dos mueva el layout del dock mientras
+              se cruzan. */}
+          <AnimatePresence mode="popLayout">
+            <motion.img
+              key={currentSong.video_id}
+              src={`https://img.youtube.com/vi/${currentSong.video_id}/default.jpg`}
+              alt={currentSong.video_title ?? currentSong.query}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              initial={{ opacity: 0, scale: 0.9, filter: "blur(6px)" }}
+              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, scale: 1.08, filter: "blur(6px)" }}
+              transition={{ duration: DURATION.base, ease: EASE.out }}
+            />
+          </AnimatePresence>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
             <Music className="w-4 h-4 text-white/80" />
           </div>
         </div>
