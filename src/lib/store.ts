@@ -8,6 +8,7 @@ import { TikTokConnection, checkChannelLive, type TikTokEvent, type ConnectionSt
 import { ytPlayer } from "./youtubePlayer";
 import { useI18n, type TranslationKey } from "./i18n";
 import { enableKeepAwake, disableKeepAwake } from "./keepAwake";
+import { startBackgroundService, stopBackgroundService } from "./backgroundService";
 import { normalizeOverlayConfig, type OverlayEventType } from "./overlayConfig";
 import { fillAlertPhrase, resolveOverlayAlert } from "./alertPhrase";
 
@@ -349,6 +350,7 @@ export const useStore = create<State>((set, get) => ({
       connection?.disconnect();
       connection = null;
       void disableKeepAwake();
+      void stopBackgroundService();
       set({
         status: "disconnected",
         reconnecting: false,
@@ -367,6 +369,7 @@ export const useStore = create<State>((set, get) => ({
         if (status === "connected") {
           set({ reconnecting: false });
           void enableKeepAwake();
+          void startBackgroundService();
         }
         set({ status });
       },
@@ -383,6 +386,7 @@ export const useStore = create<State>((set, get) => ({
         // lo limpia) — antes se borraba solo a los 6 segundos y era fácil
         // no llegar a verlo si estabas mirando otra cosa.
         void disableKeepAwake();
+        void stopBackgroundService();
         set({ notLiveUser: user, notLiveReason: "offline", status: "disconnected", reconnecting: false });
       },
       onEvent: (event: TikTokEvent) => {
@@ -442,6 +446,7 @@ export const useStore = create<State>((set, get) => ({
       connection = null;
     }
     void disableKeepAwake();
+    void stopBackgroundService();
     // Cortar la voz que esté sonando y vaciar la cola de lectura. El
     // ttsEpoch nuevo invalida cualquier mensaje que ya estuviera en la
     // cola o a medio procesar en processQueue().
@@ -490,6 +495,7 @@ export const useStore = create<State>((set, get) => ({
       void clearLiveActivity();
     }
     void disableKeepAwake();
+    void stopBackgroundService();
     voiceManager.stop();
     ytPlayer.stop();
     if (saveTimer) {

@@ -12,6 +12,10 @@ public class MainActivity extends BridgeActivity {
         // registrarse ANTES de super.onCreate(), que es cuando Capacitor
         // arranca el bridge y carga los plugins.
         registerPlugin(ApkUpdaterPlugin.class);
+        // Mantiene la conexión/lectura por voz activas con la app
+        // minimizada o la pantalla apagada — ver BackgroundServicePlugin.java
+        // y LiveNestForegroundService.java.
+        registerPlugin(BackgroundServicePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

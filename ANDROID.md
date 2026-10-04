@@ -50,17 +50,34 @@ build de Vite).
 
 ### Sobre la lectura en segundo plano
 
-Esto **no** resuelve del todo que la voz siga leyendo con la pantalla
-apagada o la app minimizada — para eso Android exige un
+Desde que se agregó el foreground service propio, la conexión al chat y la
+lectura por voz siguen funcionando con la app minimizada o la pantalla
+apagada — no solo mientras la app está abierta y a la vista (que es lo que
+`keep-awake`, de arriba, resolvía por sí solo).
+
+Cómo funciona: cuando `connect()` llega a `status: "connected"`
+(`src/lib/store.ts`), se arranca un
 [foreground service](https://developer.android.com/develop/background-work/services/foreground-services)
-nativo (un servicio en primer plano con su propia notificación persistente),
-que es un paso más de trabajo nativo, no algo que resuelva un plugin
-genérico de WebView. Lo que sí resuelve ya esta versión: que la pantalla no
-se apague sola por inactividad mientras tenés la app abierta — que era el
-caso más común de "se cortó la voz" en el celular. Si en algún momento
-querés lectura con pantalla apagada, el siguiente paso natural es agregar
-ese foreground service (o migrar el TTS de `speechSynthesis` del navegador a
-un plugin nativo de texto a voz, que sí puede seguir corriendo ahí).
+nativo propio
+(`android/app/src/main/java/net/livenest/app/LiveNestForegroundService.java`,
+expuesto a React vía `BackgroundServicePlugin.java` →
+`src/lib/backgroundService.ts`), declarado con
+`foregroundServiceType="mediaPlayback"` — ese tipo en particular porque es
+justo lo que hace (seguir reproduciendo la lectura en voz alta de los
+mensajes) y, a diferencia de `dataSync`, no tiene el tope de ~6 horas
+acumuladas cada 24hs que Android 15+ le impone a ese otro tipo — no
+cortaría un directo largo a mitad de camino. El servicio se detiene en los
+mismos puntos donde ya se llamaba `disableKeepAwake()` (`disconnect()`,
+`resetSession()`, cuando el chequeo de "¿sigue en vivo?" da que no).
+
+Android exige una notificación persistente mientras el foreground service
+está activo ("LiveNest sigue conectada") — no se puede ocultar del todo, es
+el costo que pide el sistema operativo a cambio de dejar seguir corriendo en
+segundo plano. Desde Android 13 además hace falta el permiso
+POST_NOTIFICATIONS en tiempo de ejecución para que esa notificación se vea
+— se pide solo la primera vez que hace falta; si la persona lo rechaza, el
+servicio arranca igual (lo que importa de verdad, que la conexión y la voz
+sigan andando, no depende de que el aviso se vea).
 
 ## Actualización automática (sin Play Store)
 

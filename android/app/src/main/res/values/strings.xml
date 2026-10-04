@@ -4,4 +4,11 @@
     <string name="title_activity_main">LiveNest</string>
     <string name="package_name">net.livenest.app</string>
     <string name="custom_url_scheme">net.livenest.app</string>
+
+    <!-- Canal + notificación persistente del foreground service — ver
+         LiveNestForegroundService.java. -->
+    <string name="background_channel_name">Conexión en segundo plano</string>
+    <string name="background_channel_description">Mantiene LiveNest conectada y leyendo el chat mientras usás otra app</string>
+    <string name="background_notification_title">LiveNest sigue conectada</string>
+    <string name="background_notification_text">Leyendo el chat en segundo plano. Tocá para volver a la app.</string>
 </resources>

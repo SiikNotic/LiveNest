@@ -41,6 +41,17 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Mantiene la app con prioridad de "foreground" (conexión +
+             lectura por voz activas) con la pantalla apagada o la app
+             minimizada — ver LiveNestForegroundService.java y
+             BackgroundServicePlugin.java. foregroundServiceType tiene que
+             coincidir con el que pasa startForeground() en el código, o
+             Android tira una excepción al arrancar el servicio. -->
+        <service
+            android:name=".LiveNestForegroundService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
@@ -54,4 +65,14 @@
          Sin esto, Android bloquea install() aunque el usuario ya haya
          activado "instalar apps desconocidas" para la app. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Necesarios para que LiveNest pueda seguir conectada y leyendo el
+         chat con la app minimizada o la pantalla apagada (ver
+         LiveNestForegroundService.java) — sin esto Android mata el
+         WebSocket/la lectura por voz segundos después de salir de la app. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Para que se vea el aviso de "LiveNest sigue conectada" (obligatorio
+         pedirlo en tiempo de ejecución desde Android 13 para CUALQUIER
+         notificación, no solo esta) — ver BackgroundServicePlugin.java. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
