@@ -34,7 +34,7 @@ export function Sidebar({ active, onChange }: Props) {
   if (!user) return null;
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-bg-card border-r border-border z-20">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col bg-bg-card backdrop-blur-2xl border-r border-border z-20">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
         <div className="relative shrink-0">

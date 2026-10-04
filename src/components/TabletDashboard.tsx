@@ -116,7 +116,7 @@ export function TabletDashboard() {
           {panelOrder.map((id) => {
             const Comp = PANEL_COMPONENTS[id];
             return (
-              <div key={id} className="rounded-2xl border border-border bg-bg-card overflow-hidden flex flex-col">
+              <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
                 <div className="panel-drag-handle flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-soft cursor-move flex-shrink-0 touch-none">
                   <GripVertical className="w-4 h-4 text-muted" />
                   <span className="text-sm font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>

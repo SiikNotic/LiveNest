@@ -777,9 +777,9 @@ function UserModal({
     <>
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div className="fixed inset-x-0 bottom-0 sm:inset-0 z-50 flex sm:items-center sm:justify-center pointer-events-none">
-        <div className="pointer-events-auto w-full sm:max-w-md bg-bg-card border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[88vh] overflow-y-auto animate-fade-in">
+        <div className="pointer-events-auto w-full sm:max-w-md bg-bg-card backdrop-blur-2xl border border-border rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[88vh] overflow-y-auto animate-fade-in">
           {/* Header */}
-          <div className="flex items-center gap-3 p-4 border-b border-border sticky top-0 bg-bg-card z-10">
+          <div className="flex items-center gap-3 p-4 border-b border-border sticky top-0 bg-bg-card backdrop-blur-2xl z-10">
             <div className="w-11 h-11 rounded-2xl bg-bg-soft flex items-center justify-center flex-shrink-0">
               {user.role === "admin" ? (
                 <Shield className="w-5 h-5 text-error-400" />

@@ -313,7 +313,7 @@ export function Header({ active, onChange }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label={t("menu")}
-            className={`fixed top-0 left-0 z-50 h-full w-72 max-w-[80vw] bg-bg-card border-r border-border shadow-2xl flex flex-col safe-top safe-bottom lg:hidden transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+            className={`fixed top-0 left-0 z-50 h-full w-72 max-w-[80vw] bg-bg-card backdrop-blur-2xl border-r border-border shadow-2xl flex flex-col safe-top safe-bottom lg:hidden transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
               menuVisible ? "translate-x-0" : "-translate-x-full"
             }`}
           >

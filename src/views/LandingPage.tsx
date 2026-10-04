@@ -88,7 +88,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     }, []);
     return (
       <header
-        className={`sticky top-0 z-30 bg-bg/80 backdrop-blur-md transition-shadow duration-300 ${
+        className={`sticky top-0 z-30 bg-bg-card backdrop-blur-xl transition-shadow duration-300 ${
           scrolled ? "border-b border-border shadow-lg shadow-black/20" : "border-b border-transparent"
         }`}
       >
@@ -229,7 +229,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
               </div>
 
               {/* Toast de alerta, como aparecería de verdad sobre el stream */}
-              <div className="mx-3.5 mb-2.5 flex items-center gap-2 bg-bg-card/95 border border-white/10 rounded-xl px-2.5 py-2">
+              <div className="mx-3.5 mb-2.5 flex items-center gap-2 bg-bg-card backdrop-blur-md border border-white/10 rounded-xl px-2.5 py-2">
                 <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
                   <alert.icon className="w-3.5 h-3.5 text-amber-400" />
                 </div>
@@ -306,7 +306,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-2xl overflow-hidden border border-border">
           {items.map((f, i) => (
-            <Reveal key={f.titleKey} delay={(i % 3) * 90} className="bg-bg-card p-6 hover:bg-bg-soft transition-colors">
+            <Reveal key={f.titleKey} delay={(i % 3) * 90} className="bg-bg-card backdrop-blur-xl p-6 hover:bg-bg-soft transition-colors">
               <div className="flex items-center gap-3 mb-4">
                 <div className={`w-10 h-10 rounded-xl ${f.bg} flex items-center justify-center flex-shrink-0`}>
                   <f.icon className={`w-4.5 h-4.5 ${f.color}`} />
@@ -329,7 +329,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
       { titleKey: "landing_how_3_title" as const, descKey: "landing_how_3_desc" as const },
     ];
     return (
-      <section id="how" className="bg-bg-soft/50 border-y border-border scroll-mt-16">
+      <section id="how" className="bg-bg-soft backdrop-blur-xl border-y border-border scroll-mt-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-28">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-center mb-16">{t("landing_how_title")}</h2>
           <div className="grid sm:grid-cols-3 gap-8">
@@ -393,7 +393,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
 
   function AndroidSection() {
     return (
-      <section className="bg-bg-soft/50 border-y border-border">
+      <section className="bg-bg-soft backdrop-blur-xl border-y border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 grid md:grid-cols-[1fr_auto] gap-8 items-center">
           <div>
             <span className="badge-accent mb-3">{t("landing_android_badge")}</span>
@@ -455,7 +455,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
   function FinalCta({ onLaunch }: { onLaunch: () => void }) {
     return (
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-        <Reveal className="relative rounded-2xl border border-border bg-bg-soft/60 px-6 py-14 sm:px-14 sm:py-16 flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden">
+        <Reveal className="relative rounded-2xl border border-border bg-bg-soft backdrop-blur-xl px-6 py-14 sm:px-14 sm:py-16 flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary to-accent" />
           <div className="relative text-center sm:text-left">
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">{t("landing_final_title")}</h2>

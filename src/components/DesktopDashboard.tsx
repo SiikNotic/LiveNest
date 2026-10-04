@@ -188,7 +188,7 @@ export function DesktopDashboard() {
           {presetOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setPresetOpen(false)} />
-              <div className="absolute top-full left-0 mt-1 z-20 w-48 rounded-xl bg-bg-card border border-border shadow-xl overflow-hidden py-1">
+              <div className="absolute top-full left-0 mt-1 z-20 w-48 rounded-xl bg-bg-card backdrop-blur-xl border border-border shadow-xl overflow-hidden py-1">
                 {PRESET_LABEL_KEYS.map((p) => (
                   <button
                     key={p.id}
@@ -243,7 +243,7 @@ export function DesktopDashboard() {
           {visiblePanels.map((id) => {
             const Comp = PANEL_COMPONENTS[id];
             return (
-              <div key={id} className="rounded-2xl border border-border bg-bg-card overflow-hidden flex flex-col">
+              <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
                 <div className="panel-drag-handle flex items-center gap-2 px-3 py-2 border-b border-border bg-bg-soft cursor-move flex-shrink-0">
                   <GripVertical className="w-3.5 h-3.5 text-muted" />
                   <span className="text-xs font-bold text-text-soft flex-1">{t(PANEL_LABEL_KEYS[id])}</span>
