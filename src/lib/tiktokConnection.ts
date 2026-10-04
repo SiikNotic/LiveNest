@@ -561,6 +561,37 @@ function parseGiftMessage(msg: unknown): {
   };
 }
 
+// El protobuf Webcast real (confirmado contra tiktok-live-proto-full-types:
+// WebcastChatMessage NUNCA trae un campo "timestamp" plano) solo trae la
+// hora de origen anidada en common.createTime — un int64 del protobuf, que
+// llega serializado como string. Antes esta función buscaba `data.timestamp`
+// como number, que no existe en el esquema real, así que SIEMPRE devolvía
+// undefined. Eso rompía dos cosas a la vez: la clave de isDuplicate() de
+// abajo perdía su parte más específica, y el filtro "no leer historial
+// viejo al reconectar" de store.ts (que compara event.timestamp contra
+// sessionStartedAt) nunca se aplicaba de verdad — por eso, sobre todo
+// después de reconectar, el historial que Euler Stream reenvía podía
+// terminar leyéndose otra vez por voz aunque ya se hubiera leído en la
+// conexión anterior.
+function extractChatTimestamp(data: Record<string, unknown>): number | undefined {
+  const common = data.common as Record<string, unknown> | undefined;
+  const raw = common?.createTime ?? data.createTime ?? data.timestamp;
+  let n: number | undefined;
+  if (typeof raw === "number" && Number.isFinite(raw)) n = raw;
+  else if (typeof raw === "string" && raw !== "") {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) n = parsed;
+  }
+  if (n === undefined) return undefined;
+  // createTime es un epoch — por si llega en segundos en vez de
+  // milisegundos (no hay forma de confirmarlo 100% sin probarlo contra un
+  // directo real), cualquier valor por debajo de ~año 2001 en milisegundos
+  // se reescala a ms. Evita que un desacierto de unidades deje TODOS los
+  // mensajes marcados como "viejos" (silencio total) en vez de arreglar
+  // solo el bug reportado.
+  return n < 1e12 ? n * 1000 : n;
+}
+
 // Normaliza eventos del WebSocket de Euler Stream schema v2.
 // Formato: { type: "WebcastChatMessage", data: { uniqueId, comment, ... } }
 // o: { type: "roomInfo", data: { roomInfo: { isLive, currentViewers, ... } } }
@@ -585,7 +616,7 @@ function normalizeSchemaV2(msg: unknown): TikTokEvent | null {
         avatar: avatar ?? undefined,
         message: comment,
         userId: typeof data.userId === "string" ? data.userId : undefined,
-        timestamp: typeof data.timestamp === "number" ? data.timestamp : undefined,
+        timestamp: extractChatTimestamp(data),
       };
     }
     // Los mensajes de regalo se interceptan antes, en handleMessage() vía

@@ -364,6 +364,19 @@ export const useStore = create<State>((set, get) => ({
     // ya está listo si el primer regalo llega enseguida.
     openOverlayChannel(get().settings?.overlay_token);
 
+    // Si ya había una conexión viva (doble tap/doble click en "Conectar"
+    // antes de que el botón llegue a deshabilitarse, Enter y click casi
+    // juntos, etc.), hay que cerrarla ANTES de abrir la nueva. Sin esto,
+    // la vieja se queda escuchando el mismo chat en paralelo con la nueva
+    // — cada mensaje real (no reenvío de historial) le llega a las DOS
+    // instancias, cada una con su propio dedup interno, así que ninguna lo
+    // ve como duplicado y se termina leyendo dos veces por voz. Visto
+    // desde afuera: "algunos mensajes los lee repetidos".
+    if (connection) {
+      connection.disconnect();
+      connection = null;
+    }
+
     connection = new TikTokConnection({
       onStatus: (status) => {
         if (status === "connected") {
