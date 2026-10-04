@@ -570,3 +570,113 @@ input[type="range"]::-moz-range-thumb {
   width: 16px; height: 16px; border-radius: 50%; background: var(--c-primary);
   cursor: pointer; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
+
+/* ===== LANDING PAGE — identidad propia, fija (no sigue los 13 temas) =====
+   La landing es la cara pública de marketing — tiene sentido que tenga una
+   sola identidad cuidada, igual que Raycast/Linear/Vercel no cambian de
+   paleta según quién la visita. Referencia de estilo: un sistema "cockpit
+   oscuro" (canvas casi negro, un solo acento, tarjetas con sombra interior
+   tipo "tecla de teclado" en vez de blur/glow) — adaptado a la identidad
+   propia de LiveNest (oro en vez de coral, plata en vez de azul en el
+   hero), nunca copiado literal. Todo scoped bajo .ln para no tocar el
+   sistema de temas que usa el resto de la app. */
+.ln {
+  --ln-canvas: #050505;
+  --ln-ink: #0a0a0b;
+  --ln-obsidian: #121214;
+  --ln-graphite: #1c1c1e;
+  --ln-border: #2a2a2d;
+  --ln-smoke: #6b6b6d;
+  --ln-ash: #9c9c9d;
+  --ln-mist: #f2f4f7;
+  --ln-iron: #16171a;
+  --ln-white: #ffffff;
+  /* Oro de marca (mismo que el tema Gold) en vez del coral de la
+     referencia — es la única nota de color en un sistema achromático. */
+  --ln-gold: #d89a16;
+  --ln-gold-bright: #ffd45a;
+  --ln-gold-tint: #2a2008;
+  /* Plata en vez de azul para el segundo tono del hero atmosférico. */
+  --ln-silver: #c7cad1;
+  --ln-silver-dim: #4a4d55;
+  --font-geist-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+
+  background: var(--ln-canvas);
+  color: var(--ln-white);
+  font-feature-settings: "calt", "kern", "liga";
+}
+.ln ::selection { background: var(--ln-gold); color: #000; }
+
+/* "Tecla de teclado": highlight superior + anillo + sombra interior
+   inferior — hace que la tarjeta se sienta recesada/táctil en vez de
+   flotando. Reemplaza al glassmorphism/blur del resto de la app acá a
+   propósito (el pedido explícito de la referencia es "no drop-shadows,
+   elevación por sombra interior"). */
+.ln-key {
+  background: var(--ln-ink);
+  border-radius: 16px;
+  box-shadow:
+    rgba(255, 255, 255, 0.05) 0px 1px 0px 0px inset,
+    rgba(255, 255, 255, 0.08) 0px 0px 0px 1px,
+    rgba(0, 0, 0, 0.3) 0px -1px 0px 0px inset;
+}
+.ln-key-hover {
+  transition: box-shadow 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease;
+}
+.ln-key-hover:hover {
+  background: var(--ln-obsidian);
+  box-shadow:
+    rgba(255, 255, 255, 0.07) 0px 1px 0px 0px inset,
+    rgba(216, 154, 22, 0.35) 0px 0px 0px 1px,
+    rgba(0, 0, 0, 0.3) 0px -1px 0px 0px inset;
+}
+
+/* Botón de acción neutro — Mist sobre Iron, nunca cromático. Es la única
+   superficie "llena" del sistema; el oro se reserva para logo/badges/
+   atmósfera del hero, nunca para botones. */
+.ln-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 8px; padding: 8px 16px; font-size: 14px; font-weight: 500;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.ln-btn:active { transform: scale(0.97); transition-duration: 0.08s; }
+.ln-btn-primary {
+  background: var(--ln-mist); color: var(--ln-iron);
+  box-shadow: rgba(0,0,0,0.03) 0px 7px 3px 0px, rgba(0,0,0,0.25) 0px 4px 4px 0px;
+}
+.ln-btn-primary:hover { background: var(--ln-white); }
+.ln-btn-ghost {
+  background: transparent; color: var(--ln-ash); border: 1px solid var(--ln-border);
+}
+.ln-btn-ghost:hover { color: var(--ln-white); border-color: var(--ln-smoke); }
+
+/* Pill de navegación flotante — glass solo acá, es el único uso de blur
+   del sistema (sobre el canvas casi negro, no sobre otra superficie). */
+.ln-nav-pill {
+  background: rgba(10, 10, 11, 0.7);
+  backdrop-filter: blur(48px) saturate(160%);
+  -webkit-backdrop-filter: blur(48px) saturate(160%);
+  border: 1px solid var(--ln-border);
+  border-radius: 9999px;
+}
+
+/* Badge/etiqueta — Graphite de fondo, texto blanco, pill chico y denso. */
+.ln-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--ln-graphite); color: var(--ln-white);
+  border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.ln-badge-gold { background: var(--ln-gold-tint); color: var(--ln-gold-bright); }
+
+/* Campo recesado — para el único input de la landing (si hiciera falta) */
+.ln-well {
+  background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px 12px;
+  color: var(--ln-white);
+}
+
+/* Contenedor circular de ícono — como un item de dock. */
+.ln-icon-circle {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9999px; background: var(--ln-obsidian);
+}
