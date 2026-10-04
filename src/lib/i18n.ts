@@ -681,6 +681,8 @@ export const translations = {
     theme_candy_desc: "Púrpura oscuro, rosa y cian",
     theme_forest: "Forest",
     theme_forest_desc: "Verde oscuro y esmeralda",
+    theme_gold: "LiveNest Gold",
+    theme_gold_desc: "Oro y plata sobre negro, la identidad de LiveNest",
 
     premium_upgrade_cta: "Hazte miembro",
     membership_period: "/ mes",
@@ -1499,6 +1501,8 @@ export const translations = {
     theme_candy_desc: "Dark purple, pink and cyan",
     theme_forest: "Forest",
     theme_forest_desc: "Dark green and emerald",
+    theme_gold: "LiveNest Gold",
+    theme_gold_desc: "Gold and silver on black, the LiveNest identity",
 
     premium_upgrade_cta: "Become a member",
     membership_period: "/ mo",

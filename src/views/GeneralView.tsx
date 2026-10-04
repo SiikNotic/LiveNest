@@ -3,9 +3,9 @@ import { useStore } from "../lib/store";
 import { useI18n } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
 import { PremiumBadge, requestUpgrade } from "../components/PremiumLock";
-import { Palette, Check, Moon, Contrast, Zap, Apple, Smartphone, Sparkles, Sunset as SunsetIcon, Waves, Gem, Flame, Gift, Trees } from "lucide-react";
+import { Palette, Check, Moon, Contrast, Zap, Apple, Smartphone, Sparkles, Sunset as SunsetIcon, Waves, Gem, Flame, Gift, Trees, Crown } from "lucide-react";
 
-export type ThemeId = "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest";
+export type ThemeId = "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest" | "gold";
 
 export function GeneralView() {
   const { hasActiveLicense } = useAuth();
@@ -120,6 +120,14 @@ export function GeneralView() {
       icon: Trees,
       premium: true,
       preview: { bg: "#070f0b", card: "#112018", primary: "#10b981", accent: "#2dd4bf", text: "#eefdf5" },
+    },
+    {
+      id: "gold",
+      labelKey: "theme_gold",
+      descKey: "theme_gold_desc",
+      icon: Crown,
+      premium: true,
+      preview: { bg: "#050505", card: "#171a1f", primary: "#d89a16", accent: "#f2f4f7", text: "#f2f4f7" },
     },
   ];
 

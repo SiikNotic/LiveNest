@@ -71,7 +71,7 @@ export type Settings = {
   // no una garantía en runtime (una fila vieja o tocada a mano puede traer
   // algún evento o campo de menos).
   overlay_config: OverlayConfig;
-  theme: "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest";
+  theme: "midnight" | "mono" | "neon" | "ios" | "android" | "aurora" | "sunset" | "ocean" | "violet" | "ember" | "candy" | "forest" | "gold";
   created_at: string;
   updated_at: string;
 };
