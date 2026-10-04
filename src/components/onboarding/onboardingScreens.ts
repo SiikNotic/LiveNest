@@ -6,6 +6,11 @@ export interface OnboardingScreen {
   id: OnboardingVariant;
   titleKey: TranslationKey;
   descKey: TranslationKey;
+  /** Render premium en /public/onboarding/<id>.png — oro+plata sobre
+   *  transparente, encargado aparte (ver prompts en el historial de la
+   *  conversación) en vez de geometría procedural de Three.js, que se veía
+   *  genérica. Reemplazó por completo al hero 3D con WebGL. */
+  image: string;
 }
 
 // Las 6 pantallas pedidas: Live, Chat, Voice Engine, Music, Gifts, Get
@@ -13,12 +18,12 @@ export interface OnboardingScreen {
 // CREATOR/STREAMING, sin pájaros/nidos/plumas), nunca texto hardcodeado
 // (todo sale de i18n.ts, ES+EN).
 export const ONBOARDING_SCREENS: OnboardingScreen[] = [
-  { id: "live", titleKey: "onboarding_live_title", descKey: "onboarding_live_desc" },
-  { id: "chat", titleKey: "onboarding_chat_title", descKey: "onboarding_chat_desc" },
-  { id: "voice", titleKey: "onboarding_voice_title", descKey: "onboarding_voice_desc" },
-  { id: "music", titleKey: "onboarding_music_title", descKey: "onboarding_music_desc" },
-  { id: "gifts", titleKey: "onboarding_gifts_title", descKey: "onboarding_gifts_desc" },
-  { id: "start", titleKey: "onboarding_start_title", descKey: "onboarding_start_desc" },
+  { id: "live", titleKey: "onboarding_live_title", descKey: "onboarding_live_desc", image: "/onboarding/live.png" },
+  { id: "chat", titleKey: "onboarding_chat_title", descKey: "onboarding_chat_desc", image: "/onboarding/chat.png" },
+  { id: "voice", titleKey: "onboarding_voice_title", descKey: "onboarding_voice_desc", image: "/onboarding/voice.png" },
+  { id: "music", titleKey: "onboarding_music_title", descKey: "onboarding_music_desc", image: "/onboarding/music.png" },
+  { id: "gifts", titleKey: "onboarding_gifts_title", descKey: "onboarding_gifts_desc", image: "/onboarding/gifts.png" },
+  { id: "start", titleKey: "onboarding_start_title", descKey: "onboarding_start_desc", image: "/onboarding/start.png" },
 ];
 
 const SEEN_KEY_PREFIX = "livenest_onboarding_seen_";

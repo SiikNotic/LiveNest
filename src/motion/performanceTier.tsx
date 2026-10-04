@@ -14,7 +14,6 @@ export interface MotionPreference {
   // bajar el tier, esto apaga parallax/rotación por completo (no solo
   // los reduce), como pide accesibilidad.
   reducedMotion: boolean;
-  allow3D: boolean;
   allowParticles: boolean;
   allowParallax: boolean;
 }
@@ -78,13 +77,12 @@ function downgrade(tier: PerformanceTier): PerformanceTier {
 function toPreference(tier: PerformanceTier, reducedMotion: boolean): MotionPreference {
   if (reducedMotion) {
     // Accesibilidad gana siempre, sin importar qué tan potente sea el
-    // equipo — nada de 3D/parallax/partículas, solo lo esencial.
-    return { tier: "performance", reducedMotion: true, allow3D: false, allowParticles: false, allowParallax: false };
+    // equipo — nada de parallax/partículas, solo lo esencial.
+    return { tier: "performance", reducedMotion: true, allowParticles: false, allowParallax: false };
   }
   return {
     tier,
     reducedMotion: false,
-    allow3D: tier === "premium",
     allowParticles: tier !== "performance",
     allowParallax: tier !== "performance",
   };

@@ -46,16 +46,6 @@ export function OnboardingView({ userId, onDone }: { userId: string; onDone: () 
   const screen = ONBOARDING_SCREENS[index];
   const isLast = index === ONBOARDING_SCREENS.length - 1;
 
-  // El color del orbe/forma 3D sigue el tema que la persona ya tiene
-  // elegido (o el default) en vez de un color fijo — se lee una sola vez
-  // al montar, no hace falta que reaccione a cambios de tema en medio del
-  // onboarding.
-  const [primaryColor] = useState(() => {
-    if (typeof window === "undefined") return "#d89a16";
-    const v = getComputedStyle(document.documentElement).getPropertyValue("--c-primary").trim();
-    return v || "#d89a16";
-  });
-
   const finish = () => {
     markOnboardingSeen(userId);
     onDone();
@@ -137,7 +127,7 @@ export function OnboardingView({ userId, onDone }: { userId: string; onDone: () 
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="w-full max-w-xs h-56 sm:h-64">
-              <OnboardingHero variant={screen.id} color={primaryColor} />
+              <OnboardingHero variant={screen.id} />
             </div>
             <h1 className="mt-6 text-2xl sm:text-3xl font-extrabold tracking-tight text-center max-w-sm">
               {t(screen.titleKey)}
