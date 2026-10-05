@@ -10,7 +10,6 @@ import { EventsView } from "./views/EventsView";
 import { MusicView } from "./views/MusicView";
 import { NotificationsView } from "./views/NotificationsView";
 import { Header } from "./components/Header";
-import { LiveEventToasts } from "./components/LiveEventToasts";
 import { PageTransition } from "./motion";
 import { MusicDock } from "./components/MusicDock";
 import { Sidebar } from "./components/Sidebar";
@@ -290,10 +289,6 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         <Header active={tab} onChange={setTab} />
-        {/* Vive acá, no adentro de ninguna pestaña puntual — un regalo/sub
-            puede llegar mientras la persona está mirando Música o Ajustes,
-            no solo en la pestaña de Eventos. */}
-        <LiveEventToasts />
 
         {/* El padding inferior extra de los <main> de abajo suma el
             safe-area-inset-bottom del sistema: en un teléfono con barra de
