@@ -96,8 +96,12 @@ export function LiveEventToasts() {
   }
 
   return (
+    // Antes ocupaba casi todo el ancho en mobile (inset-x-3) y tapaba lo
+    // que hubiera justo debajo del header — "bonitas pero estorban" fue el
+    // feedback. Ahora es una tarjeta angosta anclada a la derecha en todos
+    // los tamaños, como una notificación de esquina, no un banner.
     <div
-      className="fixed top-[calc(4.5rem+env(safe-area-inset-top))] inset-x-3 sm:inset-x-auto sm:right-4 z-[90] flex flex-col gap-2 pointer-events-none"
+      className="fixed top-[calc(4.5rem+env(safe-area-inset-top))] right-3 sm:right-4 z-[90] flex flex-col gap-2 pointer-events-none"
       aria-live="polite"
     >
       <AnimatePresence mode="popLayout">
@@ -115,7 +119,7 @@ export function LiveEventToasts() {
               animate="visible"
               exit="exit"
               onClick={() => dismiss(item.key)}
-              className={`pointer-events-auto card flex items-center gap-3 sm:w-80 cursor-pointer ${
+              className={`pointer-events-auto card flex items-center gap-3 w-72 max-w-[calc(100vw-1.5rem)] cursor-pointer ${
                 isHigh ? "border-primary/40" : ""
               }`}
               style={isHigh ? { boxShadow: "0 8px 28px var(--c-glow), 0 0 0 1px rgba(255,255,255,0.04) inset" } : undefined}
