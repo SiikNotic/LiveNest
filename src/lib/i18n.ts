@@ -560,6 +560,21 @@ export const translations = {
     voices_test_text_en: "Hello, this is a voice test for TikTools Live.",
     voices_preview_error: "Error al reproducir la voz.",
 
+    // Voces — variante de escritorio/tablet
+    voices_search_placeholder: "Buscar voces...",
+    voices_audio_desc: "Personaliza cómo se escuchan las voces",
+    voices_volume_general: "Volumen general",
+    voices_rate_label: "Velocidad de lectura",
+    voices_pitch_label: "Tono de voz",
+    voices_pause_label: "Pausa entre mensajes",
+    voices_not_supported: "No disponible con este motor",
+    voices_feature_unavailable: "Esta función todavía no existe en LiveNest",
+    voices_reset_settings: "Restablecer ajustes",
+    voices_select: "Seleccionar",
+    voices_preview_sample_aria: "Escuchar muestra",
+    voices_test_desc_long: "Escucha cómo sonará la voz seleccionada",
+    voices_list_desc: "Selecciona una voz para probarla y usarla en el lector",
+
     // Filters view
     filters_length_title: "Filtro por longitud",
     filters_min_chars: "Mín. caracteres",
@@ -1434,6 +1449,21 @@ export const translations = {
     voices_test_text_es: "Hola, esta es una prueba de voz para TikTools Live.",
     voices_test_text_en: "Hello, this is a voice test for TikTools Live.",
     voices_preview_error: "Error playing voice.",
+
+    // Voices — desktop/tablet variant
+    voices_search_placeholder: "Search voices...",
+    voices_audio_desc: "Customize how voices sound",
+    voices_volume_general: "Overall volume",
+    voices_rate_label: "Reading speed",
+    voices_pitch_label: "Voice pitch",
+    voices_pause_label: "Pause between messages",
+    voices_not_supported: "Not available with this engine",
+    voices_feature_unavailable: "This feature doesn't exist in LiveNest yet",
+    voices_reset_settings: "Reset settings",
+    voices_select: "Select",
+    voices_preview_sample_aria: "Listen to sample",
+    voices_test_desc_long: "Hear how the selected voice will sound",
+    voices_list_desc: "Select a voice to preview and use it in the reader",
 
     filters_length_title: "Length filter",
     filters_min_chars: "Min characters",
