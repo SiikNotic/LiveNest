@@ -574,6 +574,8 @@ export const translations = {
     voices_preview_sample_aria: "Escuchar muestra",
     voices_test_desc_long: "Escucha cómo sonará la voz seleccionada",
     voices_list_desc: "Selecciona una voz para probarla y usarla en el lector",
+    voices_engine_desc: "Selecciona el motor de voz que prefieras",
+    voices_language_desc: "Idioma de las voces del lector",
 
     // Filters view
     filters_length_title: "Filtro por longitud",
@@ -1464,6 +1466,8 @@ export const translations = {
     voices_preview_sample_aria: "Listen to sample",
     voices_test_desc_long: "Hear how the selected voice will sound",
     voices_list_desc: "Select a voice to preview and use it in the reader",
+    voices_engine_desc: "Pick the voice engine you prefer",
+    voices_language_desc: "Language of the reader's voices",
 
     filters_length_title: "Length filter",
     filters_min_chars: "Min characters",

@@ -9,7 +9,7 @@ import {
   Volume2, VolumeX, Mic, Check, AlertCircle, User, UserRound,
   Headphones, Settings2, ChevronDown, ChevronUp, Shuffle,
   Globe, Sparkles, Crown, Lock, Search, Gauge, Timer, SlidersHorizontal,
-  RotateCcw, Play, Pause,
+  RotateCcw, Play, Pause, Layers,
 } from "lucide-react";
 type TFunc = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
@@ -434,7 +434,15 @@ export function VoicesView() {
       </div>
 
       <div className="card">
-        <label className="label">{t("voices_engine")}</label>
+        <div className="flex items-center gap-2.5 mb-3.5">
+          <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+            <Layers className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">{t("voices_engine")}</h3>
+            <p className="text-[11px] text-muted">{t("voices_engine_desc")}</p>
+          </div>
+        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {VISIBLE_PROVIDERS.map((p) => (
             <DesktopEngineCard
@@ -465,9 +473,14 @@ export function VoicesView() {
         </div>
 
         <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <Headphones className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold">{t("voices_language")}</h3>
+          <div className="flex items-center gap-2.5 mb-3.5">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+              <Headphones className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold">{t("voices_language")}</h3>
+              <p className="text-[11px] text-muted">{t("voices_language_desc")}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex gap-2">
@@ -477,12 +490,17 @@ export function VoicesView() {
                   <button
                     key={l.code}
                     onClick={() => setFilterLang(l.code)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 card-press ${
+                    className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 card-press ${
                       isActive ? "bg-primary text-bg" : "bg-bg-soft text-muted hover:text-text border border-border"
                     }`}
                   >
                     <span className="text-base leading-none">{l.flag}</span>
                     {l.code === "es" ? "Español" : "English"}
+                    {isActive && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-accent flex items-center justify-center ring-2 ring-bg-card">
+                        <Check className="w-2.5 h-2.5 text-bg" strokeWidth={3} />
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -749,6 +767,19 @@ function DesktopVoicesMain({
   );
 }
 
+const VOICE_AVATAR_GRADIENTS = [
+  "from-sky-500 to-primary",
+  "from-fuchsia-500 to-purple-500",
+  "from-amber-500 to-orange-500",
+  "from-emerald-500 to-teal-500",
+  "from-rose-500 to-pink-500",
+];
+function gradientForVoice(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return VOICE_AVATAR_GRADIENTS[Math.abs(hash) % VOICE_AVATAR_GRADIENTS.length];
+}
+
 function DesktopVoiceRow({ voice, isSelected, isPreviewing, onSelect, onPreview, t }: {
   voice: VoiceInfo;
   isSelected: boolean;
@@ -771,9 +802,12 @@ function DesktopVoiceRow({ voice, isSelected, isPreviewing, onSelect, onPreview,
       </button>
 
       {/* Ningún motor (Navegador/Google/Inworld/ElevenLabs) da una foto por
-          voz — ícono consistente en vez de inventar un avatar personal. */}
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/25 to-accent/25 flex items-center justify-center flex-shrink-0 border border-border">
-        <Mic className="w-4 h-4 text-primary" />
+          voz — en vez de inventar una imagen personal, cada voz tiene un
+          color propio (hash de su nombre, mismo patrón que ya usan los
+          avatares de canal en ChannelsView/Admin) con su inicial, así la
+          lista no se ve con el mismo ícono repetido en cada fila. */}
+      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientForVoice(voice.name)} flex items-center justify-center text-xs font-bold text-white flex-shrink-0 border border-border`}>
+        {voice.name.slice(0, 1).toUpperCase()}
       </div>
 
       <div className="min-w-0 flex-1">
