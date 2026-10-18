@@ -341,7 +341,14 @@ export default function App() {
           </>
         ) : (
           <main className="flex-1 px-4 pt-2 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] lg:px-6 overflow-y-auto">
-            <div className="max-w-2xl md:max-w-3xl mx-auto w-full">
+            {/* Voces tiene su propio layout de 2 columnas en escritorio/tablet
+                (lista + ajustes de audio lado a lado) que necesita todo el
+                ancho disponible — el límite de max-w-3xl (pensado para
+                pantallas angostas de una sola columna, como Canales/Lectura)
+                lo dejaba encajonado con franjas vacías a los costados.
+                max-w-2xl se mantiene igual en mobile (<768px), donde nunca
+                llegaba a notarse de todos modos. */}
+            <div className={tab === "voices" ? "max-w-2xl md:max-w-none w-full" : "max-w-2xl md:max-w-3xl mx-auto w-full"}>
               <PageTransition tabKey={tab}>
                 {tab === "channels" && <ChannelsView />}
                 {tab === "notifications" && <NotificationsView />}
