@@ -565,6 +565,14 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
             <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--ln-smoke)" }}>{t("landing_footer_legal")}</p>
             <div className="flex flex-col gap-1.5 text-xs" style={{ color: "var(--ln-ash)" }}>
               <a href="/terms.html" className="hover:opacity-70 transition-opacity">{t("landing_footer_terms")}</a>
+              {/* Páginas estáticas crawleables para SEO de cola larga
+                  (fuera del bundle de la SPA, viven en /es//en/ en
+                  livenest2) — recuperadas de un commit que se había
+                  pusheado directo a livenest2 sin pasar por acá. */}
+              <a href="/es/lector-voz-tiktok-live/" className="hover:opacity-70 transition-opacity">Lector de voz TikTok Live</a>
+              <a href="/es/como-leer-comentarios-tiktok-live/" className="hover:opacity-70 transition-opacity">Guía TikTok Live</a>
+              <a href="/es/tiktok-live-text-to-speech/" className="hover:opacity-70 transition-opacity">TikTok Live TTS</a>
+              <a href="/es/alertas-tiktok-live/" className="hover:opacity-70 transition-opacity">Alertas TikTok Live</a>
               <a href="/privacy.html" className="hover:opacity-70 transition-opacity">{t("landing_footer_privacy")}</a>
             </div>
           </div>
