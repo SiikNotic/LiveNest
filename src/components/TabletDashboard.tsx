@@ -1,33 +1,15 @@
-import { useCallback, useMemo, useState } from "react";
-import { Capacitor } from "@capacitor/core";
-import GridLayout, { WidthProvider, type Layout } from "react-grid-layout";
-import "react-grid-layout/css/styles.css";
-import { GripVertical, RotateCcw } from "lucide-react";
 import { ChatView } from "../views/ChatView";
 import { EventsView } from "../views/EventsView";
 import { MusicView } from "../views/MusicView";
 import { useI18n, type TranslationKey } from "../lib/i18n";
-import { useAutoRowHeight } from "../lib/useAutoRowHeight";
-
-const ReactGridLayout = WidthProvider(GridLayout);
-
-const ROW_HEIGHT = 28;
-const GRID_MARGIN = 12;
-const MIN_ROW_HEIGHT = 20;
-// Este ajuste es solo para la versión web — en la app nativa (tablet
-// Android) se mantiene el rowHeight fijo de siempre, sin tocar nada.
-const isNative = Capacitor.isNativePlatform();
 
 /*
-Versión tablet del dashboard: 2 columnas, objetivos táctiles grandes. Solo
-Chat es reordenable por arrastre (react-grid-layout ya soporta touch de
-forma nativa); Música y Alertas son estáticos — ni se arrastran ni se
-redimensionan, siempre el mismo tamaño y lugar (pedido explícito). Tampoco
-hay resize por esquina para nadie — en pantallas táctiles medias, el resize
-por arrastre es propenso a errores.
-
-No es el layout de escritorio encogido ni el de móvil estirado — usa su
-propia grilla de 2 columnas con paneles más altos.
+Versión tablet del dashboard: 2 columnas fijas — Chat ocupa toda la
+columna izquierda, Música y Alertas se apilan a la derecha. Nada se
+arrastra, nada se redimensiona, no hay scroll de ningún tipo (ni de
+página ni dentro de cada panel) — mismo criterio que DesktopDashboard,
+ver el comentario ahí para el porqué. ChatView/EventsView/MusicView son
+los mismos componentes que la pestaña de mobile, sin tocar nada adentro.
 */
 
 type PanelId = "chat" | "events" | "music";
@@ -38,112 +20,39 @@ const PANEL_LABEL_KEYS: Record<PanelId, TranslationKey> = {
   music: "dash_panel_music",
 };
 
-const PANEL_COMPONENTS: Record<PanelId, React.ComponentType> = {
-  chat: ChatView,
-  events: EventsView,
-  music: MusicView,
-};
-
-const DEFAULT_LAYOUT: Layout[] = [
-  { i: "chat", x: 0, y: 0, w: 1, h: 14 },
-  { i: "music", x: 1, y: 0, w: 1, h: 7, static: true },
-  { i: "events", x: 1, y: 7, w: 1, h: 7, static: true },
-];
-
-const STORAGE_KEY = "livenest_tablet_layout";
-
-// Música y Alertas son estáticos (pedido explícito: nada se arrastra ni
-// crece ahí) — Chat sigue moviéndose libre. Un layout viejo guardado en
-// localStorage antes de este cambio no tiene la marca `static`, así que
-// se la forzamos igual al cargarlo (conserva la posición que el usuario
-// ya había elegido, solo deja de poder reordenarse).
-function withStaticFlags(layout: Layout[]): Layout[] {
-  return layout.map((l) => (l.i === "chat" ? l : { ...l, static: true }));
-}
-
-function loadStoredLayout(): Layout[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_LAYOUT;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length === 3 ? withStaticFlags(parsed) : DEFAULT_LAYOUT;
-  } catch {
-    return DEFAULT_LAYOUT;
-  }
+function Panel({ id, children }: { id: PanelId; children: React.ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-bg-soft">
+        <span className="text-sm font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
+      </div>
+      <div className="flex-1 min-h-0 overflow-hidden p-3">{children}</div>
+    </div>
+  );
 }
 
 export function TabletDashboard() {
-  const { t } = useI18n();
-  const [layout, setLayout] = useState<Layout[]>(loadStoredLayout);
-
-  const handleLayoutChange = useCallback((next: Layout[]) => {
-    const withFlags = withStaticFlags(next);
-    setLayout(withFlags);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(withFlags));
-  }, []);
-
-  const resetLayout = () => {
-    setLayout(DEFAULT_LAYOUT);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LAYOUT));
-  };
-
-  const panelOrder = useMemo<PanelId[]>(() => ["chat", "events", "music"], []);
-  // Igual que en DesktopDashboard: calcula el alto de fila real a partir
-  // del alto disponible de la pantalla en vez de usar el valor fijo de
-  // siempre, para que Música/Alertas no queden cortados en pantallas más
-  // chicas de lo asumido.
-  const totalRows = useMemo(() => layout.reduce((max, l) => Math.max(max, l.y + l.h), 1), [layout]);
-  const { containerRef: gridContainerRef, rowHeight: autoRowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
-  const rowHeight = isNative ? ROW_HEIGHT : autoRowHeight;
-
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2 flex-shrink-0">
-        <button
-          onClick={resetLayout}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bg-soft border border-border text-xs font-semibold text-muted hover:text-text transition-colors active:scale-95"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          {t("dash_reset_layout")}
-        </button>
+    // pb con env(safe-area-inset-bottom): este layout también corre en
+    // celulares grandes apaisados con barra de navegación en pantalla —
+    // sin esto, el panel de más abajo queda tapado detrás de esos botones.
+    <div
+      className="h-full min-h-0 flex gap-3 px-4 pt-3 overflow-hidden"
+      style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="flex-1 min-h-0 flex flex-col">
+        <Panel id="chat">
+          <ChatView />
+        </Panel>
       </div>
-
-      {/* pb con env(safe-area-inset-bottom): este layout también corre en
-          celulares grandes apaisados con barra de navegación en pantalla
-          (ver el mismo ajuste en App.tsx) — sin esto, los paneles de más
-          abajo quedan tapados detrás de esos botones. */}
-      <div ref={gridContainerRef} className="flex-1 overflow-y-auto px-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))]">
-        <ReactGridLayout
-          className="layout"
-          layout={layout}
-          onLayoutChange={handleLayoutChange}
-          cols={2}
-          rowHeight={rowHeight}
-          margin={[GRID_MARGIN, GRID_MARGIN]}
-          draggableHandle=".panel-drag-handle"
-          isResizable={false}
-          isBounded
-        >
-          {panelOrder.map((id) => {
-            const Comp = PANEL_COMPONENTS[id];
-            const isStatic = id !== "chat";
-            return (
-              <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
-                <div
-                  className={`flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-soft flex-shrink-0 ${
-                    isStatic ? "" : "panel-drag-handle cursor-move touch-none"
-                  }`}
-                >
-                  {!isStatic && <GripVertical className="w-4 h-4 text-muted" />}
-                  <span className="text-sm font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
-                </div>
-                <div className="flex-1 overflow-y-auto scrollbar-thin p-3">
-                  <Comp />
-                </div>
-              </div>
-            );
-          })}
-        </ReactGridLayout>
+      <div className="flex-1 min-h-0 flex flex-col gap-3">
+        <Panel id="music">
+          <MusicView />
+        </Panel>
+        <Panel id="events">
+          <EventsView />
+        </Panel>
       </div>
     </div>
   );

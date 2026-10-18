@@ -842,16 +842,6 @@ export const translations = {
     dash_panel_chat: "Chat en vivo",
     dash_panel_events: "Alertas",
     dash_panel_music: "Música",
-    dash_preset_default: "Predeterminado",
-    dash_preset_chat_focus: "Enfoque en Chat",
-    dash_preset_music_focus: "Enfoque en Música",
-    dash_preset_compact: "Compacto",
-    dash_my_layout: "Mi diseño",
-    dash_layout_label: "Diseño",
-    dash_reset: "Restablecer",
-    dash_reset_layout: "Restablecer diseño",
-    dash_close_panel_title: "Cerrar panel",
-    dash_close_panel_aria: "Cerrar panel de {panel}",
 
     // Filtros / plantillas: placeholders
     filters_placeholder_user: "@usuario",
@@ -1693,16 +1683,6 @@ export const translations = {
     dash_panel_chat: "Live chat",
     dash_panel_events: "Alerts",
     dash_panel_music: "Music",
-    dash_preset_default: "Default",
-    dash_preset_chat_focus: "Chat focus",
-    dash_preset_music_focus: "Music focus",
-    dash_preset_compact: "Compact",
-    dash_my_layout: "My layout",
-    dash_layout_label: "Layout",
-    dash_reset: "Reset",
-    dash_reset_layout: "Reset layout",
-    dash_close_panel_title: "Close panel",
-    dash_close_panel_aria: "Close {panel} panel",
 
     // Filters / templates: placeholders
     filters_placeholder_user: "@username",

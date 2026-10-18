@@ -1,38 +1,25 @@
-import { useCallback, useMemo, useState, useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
-import GridLayout, { WidthProvider, type Layout } from "react-grid-layout";
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
-import { GripVertical, X, RotateCcw, LayoutGrid, ChevronDown, Eye } from "lucide-react";
+import type { ReactNode } from "react";
 import { ChatView } from "../views/ChatView";
 import { EventsView } from "../views/EventsView";
 import { MusicView } from "../views/MusicView";
 import { useI18n, type TranslationKey } from "../lib/i18n";
-import { useAutoRowHeight } from "../lib/useAutoRowHeight";
-
-const ROW_HEIGHT = 28;
-const GRID_MARGIN = 16;
-const MIN_ROW_HEIGHT = 20;
-// Este ajuste es solo para la versión web — en la app nativa se mantiene
-// el rowHeight fijo de siempre, sin tocar nada.
-const isNative = Capacitor.isNativePlatform();
-
-const ReactGridLayout = WidthProvider(GridLayout);
 
 /*
-Paneles del dashboard de escritorio, arrastrables y redimensionables sobre
-una grilla de 12 columnas (react-grid-layout ya es la única librería de
-drag & drop del proyecto — no se agregó ninguna otra).
+Versión de escritorio del dashboard: 3 paneles fijos en una sola fila
+(Chat/Alertas/Música), sin arrastrar, sin redimensionar, sin "diseños"
+para elegir — pedido explícito del usuario, después de que la versión
+anterior (react-grid-layout: paneles arrastrables/redimensionables, con
+presets guardados en localStorage) terminaba con paneles más grandes de
+lo que su contenido necesitaba, cajas vacías y overflow raro.
 
-Persistencia: el diseño del usuario se guarda en localStorage
-("livenest_dashboard_layout"). No se creó ninguna tabla nueva en Supabase
-para esto — un layout de UI puramente visual no necesita sincronizarse
-entre dispositivos, así que localStorage es suficiente y evita gastar
-cuota de base de datos en algo que no la necesita.
-
-Los paneles en sí (ChatView, EventsView, MusicView) son exactamente los
-mismos componentes que ya existían — el drag & drop solo cambia dónde y
-de qué tamaño se ven, nunca duplica su lógica interna.
+Tampoco hay scroll de ningún tipo acá — ni de la página, ni dentro de
+cada panel (otro pedido explícito). Cada panel usa `overflow-hidden` en
+vez de `overflow-y-auto`: lo que no entra en el alto fijo se recorta en
+el borde de la tarjeta, nunca scrollea ni hace crecer la tarjeta.
+ChatView/EventsView/MusicView son los MISMOS componentes que usa la
+pestaña de Chat/Alertas/Música en mobile (que sí necesita scroll de
+verdad, para ver historial) — no se les tocó nada adentro, el recorte es
+responsabilidad de este wrapper, nunca de ellos.
 */
 
 type PanelId = "chat" | "events" | "music";
@@ -43,242 +30,33 @@ const PANEL_LABEL_KEYS: Record<PanelId, TranslationKey> = {
   music: "dash_panel_music",
 };
 
-const PANEL_COMPONENTS: Record<PanelId, React.ComponentType> = {
-  chat: ChatView,
-  events: EventsView,
-  music: MusicView,
-};
-
-const ALL_PANELS: PanelId[] = ["chat", "events", "music"];
-
-// Música y Alertas son estáticos en los 4 presets (pedido explícito: esos
-// dos no se arrastran ni se redimensionan, solo Chat). `static: true` en
-// react-grid-layout ya desactiva drag Y resize juntos para ese panel.
-const LAYOUT_PRESETS: Record<string, Layout[]> = {
-  default: [
-    { i: "chat", x: 0, y: 0, w: 6, h: 10, minW: 3, minH: 6 },
-    { i: "events", x: 6, y: 0, w: 3, h: 10, static: true },
-    { i: "music", x: 9, y: 0, w: 3, h: 10, static: true },
-  ],
-  chatFocus: [
-    { i: "chat", x: 0, y: 0, w: 8, h: 12, minW: 3, minH: 6 },
-    { i: "events", x: 8, y: 0, w: 4, h: 6, static: true },
-    { i: "music", x: 8, y: 6, w: 4, h: 6, static: true },
-  ],
-  musicFocus: [
-    { i: "music", x: 0, y: 0, w: 7, h: 12, static: true },
-    { i: "chat", x: 7, y: 0, w: 5, h: 7, minW: 3, minH: 4 },
-    { i: "events", x: 7, y: 7, w: 5, h: 5, static: true },
-  ],
-  compact: [
-    { i: "chat", x: 0, y: 0, w: 5, h: 8, minW: 3, minH: 5 },
-    { i: "events", x: 5, y: 0, w: 3, h: 8, static: true },
-    { i: "music", x: 8, y: 0, w: 4, h: 8, static: true },
-  ],
-};
-
-const PRESET_LABEL_KEYS: { id: keyof typeof LAYOUT_PRESETS; labelKey: TranslationKey }[] = [
-  { id: "default", labelKey: "dash_preset_default" },
-  { id: "chatFocus", labelKey: "dash_preset_chat_focus" },
-  { id: "musicFocus", labelKey: "dash_preset_music_focus" },
-  { id: "compact", labelKey: "dash_preset_compact" },
-];
-
-const STORAGE_KEY = "livenest_dashboard_layout";
-const HIDDEN_KEY = "livenest_dashboard_hidden";
-
-// Fuerza `static: true` en todo lo que no sea "chat" — cubre tanto los
-// presets de arriba como un layout guardado en localStorage de antes de
-// este cambio, que todavía no tenía la marca.
-function withStaticFlags(layout: Layout[]): Layout[] {
-  return layout.map((l) => (l.i === "chat" ? l : { ...l, static: true }));
-}
-
-function loadStoredLayout(): Layout[] | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return withStaticFlags(parsed);
-  } catch {
-    return null;
-  }
-}
-
-function loadHiddenPanels(): PanelId[] {
-  try {
-    const raw = localStorage.getItem(HIDDEN_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((p): p is PanelId => ALL_PANELS.includes(p)) : [];
-  } catch {
-    return [];
-  }
+function Panel({ id, grow, children }: { id: PanelId; grow: number; children: ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <div
+      style={{ flex: `${grow} 1 0` }}
+      className="min-w-0 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden"
+    >
+      <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-bg-soft">
+        <span className="text-xs font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
+      </div>
+      <div className="flex-1 min-h-0 overflow-hidden p-3">{children}</div>
+    </div>
+  );
 }
 
 export function DesktopDashboard() {
-  const { t } = useI18n();
-  const [layout, setLayout] = useState<Layout[]>(() => loadStoredLayout() ?? LAYOUT_PRESETS.default);
-  const [hidden, setHidden] = useState<PanelId[]>(() => loadHiddenPanels());
-  const [presetOpen, setPresetOpen] = useState(false);
-  const [isCustom, setIsCustom] = useState(() => loadStoredLayout() !== null);
-
-  useEffect(() => {
-    localStorage.setItem(HIDDEN_KEY, JSON.stringify(hidden));
-  }, [hidden]);
-
-  // Cerrar el menú de diseños con Escape, igual que con clic afuera.
-  useEffect(() => {
-    if (!presetOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPresetOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [presetOpen]);
-
-  const visiblePanels = useMemo(() => ALL_PANELS.filter((p) => !hidden.includes(p)), [hidden]);
-  const visibleLayout = useMemo(() => layout.filter((l) => visiblePanels.includes(l.i as PanelId)), [layout, visiblePanels]);
-  // Filas totales que ocupa el layout visible (el borde inferior más bajo
-  // entre todos los paneles) — con eso, useAutoRowHeight calcula el alto de
-  // fila real para que la grilla llene el alto disponible de la pantalla
-  // en vez de quedarse en el valor fijo de siempre.
-  const totalRows = useMemo(
-    () => visibleLayout.reduce((max, l) => Math.max(max, l.y + l.h), 1),
-    [visibleLayout]
-  );
-  const { containerRef: gridContainerRef, rowHeight: autoRowHeight } = useAutoRowHeight(totalRows, GRID_MARGIN, ROW_HEIGHT, MIN_ROW_HEIGHT);
-  const rowHeight = isNative ? ROW_HEIGHT : autoRowHeight;
-
-  const handleLayoutChange = useCallback((next: Layout[]) => {
-    // react-grid-layout solo reporta los items visibles en cada callback —
-    // conservamos la posición guardada de los ocultos combinando ambos.
-    setLayout((prev) => {
-      const merged = withStaticFlags([...next]);
-      for (const item of prev) {
-        if (!merged.some((m) => m.i === item.i)) merged.push(item);
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-      return merged;
-    });
-    setIsCustom(true);
-  }, []);
-
-  const applyPreset = (id: keyof typeof LAYOUT_PRESETS) => {
-    setLayout(LAYOUT_PRESETS[id]);
-    setHidden([]);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(LAYOUT_PRESETS[id]));
-    localStorage.setItem(HIDDEN_KEY, JSON.stringify([]));
-    setIsCustom(false);
-    setPresetOpen(false);
-  };
-
-  const resetLayout = () => applyPreset("default");
-
-  const hidePanel = (id: PanelId) => setHidden((h) => [...h, id]);
-  const showPanel = (id: PanelId) => setHidden((h) => h.filter((p) => p !== id));
-
   return (
-    <div className="h-full flex flex-col">
-      {/* Layout controls */}
-      <div className="flex items-center gap-2 px-4 lg:px-6 pt-4 pb-2 flex-shrink-0">
-        <div className="relative">
-          <button
-            onClick={() => setPresetOpen((v) => !v)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-bg-soft border border-border text-xs font-semibold text-text-soft hover:text-text transition-colors"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            {isCustom ? t("dash_my_layout") : (() => {
-              const key = PRESET_LABEL_KEYS.find((p) => p.id === Object.keys(LAYOUT_PRESETS).find((k) => LAYOUT_PRESETS[k] === layout))?.labelKey;
-              return key ? t(key) : t("dash_layout_label");
-            })()}
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-          {presetOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setPresetOpen(false)} />
-              <div className="absolute top-full left-0 mt-1 z-20 w-48 rounded-xl bg-bg-card backdrop-blur-xl border border-border shadow-xl overflow-hidden py-1">
-                {PRESET_LABEL_KEYS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => applyPreset(p.id)}
-                    className="w-full text-left px-3 py-2 text-xs font-medium text-text-soft hover:bg-bg-hover hover:text-text transition-colors"
-                  >
-                    {t(p.labelKey)}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <button
-          onClick={resetLayout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bg-soft border border-border text-xs font-semibold text-muted hover:text-text transition-colors"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          {t("dash_reset")}
-        </button>
-
-        {hidden.length > 0 && (
-          <div className="flex items-center gap-1.5 ml-auto">
-            {hidden.map((id) => (
-              <button
-                key={id}
-                onClick={() => showPanel(id)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                {t(PANEL_LABEL_KEYS[id])}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Grid */}
-      <div ref={gridContainerRef} className="flex-1 overflow-y-auto px-4 lg:px-6 pb-4">
-        <ReactGridLayout
-          className="layout"
-          layout={visibleLayout}
-          onLayoutChange={handleLayoutChange}
-          cols={12}
-          rowHeight={rowHeight}
-          margin={[GRID_MARGIN, GRID_MARGIN]}
-          draggableHandle=".panel-drag-handle"
-          resizeHandles={["se"]}
-          isBounded
-        >
-          {visiblePanels.map((id) => {
-            const Comp = PANEL_COMPONENTS[id];
-            const isStatic = id !== "chat";
-            return (
-              <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 border-b border-border bg-bg-soft flex-shrink-0 ${
-                    isStatic ? "" : "panel-drag-handle cursor-move"
-                  }`}
-                >
-                  {!isStatic && <GripVertical className="w-3.5 h-3.5 text-muted" />}
-                  <span className="text-xs font-bold text-text-soft flex-1">{t(PANEL_LABEL_KEYS[id])}</span>
-                  <button
-                    onClick={() => hidePanel(id)}
-                    className="w-6 h-6 rounded-lg flex items-center justify-center text-muted hover:text-error-400 hover:bg-error-400/10 transition-colors"
-                    title={t("dash_close_panel_title")}
-                    aria-label={t("dash_close_panel_aria", { panel: t(PANEL_LABEL_KEYS[id]) })}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto scrollbar-thin p-3">
-                  <Comp />
-                </div>
-              </div>
-            );
-          })}
-        </ReactGridLayout>
-      </div>
+    <div className="h-full min-h-0 flex gap-4 px-4 lg:px-6 py-4 overflow-hidden">
+      <Panel id="chat" grow={2}>
+        <ChatView />
+      </Panel>
+      <Panel id="events" grow={1}>
+        <EventsView />
+      </Panel>
+      <Panel id="music" grow={1}>
+        <MusicView />
+      </Panel>
     </div>
   );
 }
