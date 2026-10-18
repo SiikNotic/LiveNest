@@ -279,8 +279,15 @@ export default function App() {
     return <OnboardingView userId={user.id} onDone={() => setShowOnboarding(false)} />;
   }
 
+  // lg:h-screen + lg:overflow-hidden: solo en escritorio (lg+) esta capa pasa
+  // de "mínimo 100vh, crece si hace falta" a "exactamente 100vh" — sin esto,
+  // DesktopDashboard (flex-1/overflow-hidden en cascada) no tenía ningún
+  // ancestro con alto real contra el cual recortarse, así que en vez de
+  // scrollear SOLO adentro del chat/alertas (como pide el diseño) terminaba
+  // scrolleando la página entera. Tablet y mobile no llevan el prefijo lg:,
+  // quedan exactamente como estaban.
   return (
-    <div className="min-h-screen flex relative">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex relative">
       <div className="fixed overflow-hidden pointer-events-none" style={{ left: -9999, top: -9999, width: 200, height: 200 }} aria-hidden>
         <div ref={playerContainerRef} style={{ width: 200, height: 200 }} />
       </div>
@@ -310,7 +317,7 @@ export default function App() {
         ) : isDashboard ? (
           <>
             <main className="hidden lg:block flex-1 overflow-hidden">
-              <DesktopDashboard />
+              <DesktopDashboard onChange={setTab} />
             </main>
             <main className="hidden md:block lg:hidden flex-1 overflow-hidden">
               <TabletDashboard />

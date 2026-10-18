@@ -249,6 +249,23 @@ export const translations = {
     nav_live: "En vivo",
     dash_subtitle: "Chat, alertas y música — todo en un solo lugar.",
 
+    // Dashboard de escritorio (reordenado según referencia visual): "Inicio"
+    // es el mismo destino que nav_live (tab "chat"), solo que el sidebar de
+    // escritorio ahora lo etiqueta distinto al de nav_live (que sigue usando
+    // el encabezado de página dentro del propio dashboard).
+    nav_home: "Inicio",
+    dash_connected: "Conectado",
+    dash_disconnect: "Desconectar",
+    dash_view_all: "Ver todas",
+    dash_library: "Biblioteca",
+    dash_alerts_title: "Alertas en tiempo real",
+    dash_stats_title: "Estadísticas del directo",
+    dash_stat_viewers: "Espectadores",
+    dash_stat_messages: "Mensajes",
+    dash_stat_likes: "Me gusta",
+    dash_stat_gifts: "Regalos",
+    dash_stat_followers: "Nuevos seguidores",
+
     // Tabs
     tab_chat: "Chat",
     tab_events: "Actividad",
@@ -1106,6 +1123,19 @@ export const translations = {
 
     nav_live: "Live",
     dash_subtitle: "Chat, alerts and music — all in one place.",
+
+    nav_home: "Home",
+    dash_connected: "Connected",
+    dash_disconnect: "Disconnect",
+    dash_view_all: "View all",
+    dash_library: "Library",
+    dash_alerts_title: "Real-time alerts",
+    dash_stats_title: "Live stats",
+    dash_stat_viewers: "Viewers",
+    dash_stat_messages: "Messages",
+    dash_stat_likes: "Likes",
+    dash_stat_gifts: "Gifts",
+    dash_stat_followers: "New followers",
 
     tab_chat: "Chat",
     tab_events: "Activity",

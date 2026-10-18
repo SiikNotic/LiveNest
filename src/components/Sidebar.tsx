@@ -1,4 +1,4 @@
-import { Radio, Bell, Mic, SlidersHorizontal, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
+import { Home, Bell, Mic, SlidersHorizontal, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
 import { useI18n, type TranslationKey } from "../lib/i18n";
@@ -8,29 +8,23 @@ import { useStore } from "../lib/store";
 // las tres llevan al MISMO dashboard combinado (ver DesktopDashboard.tsx:
 // isDashboard muestra los tres paneles juntos sin importar cuál tab esté
 // activo) — eran 3 botones distintos para un solo destino, confuso sin
-// ninguna razón real. Ahora es una sola entrada "En vivo" (tab "chat",
-// el mismo valor de siempre — DesktopDashboard no cambia). Mobile sigue
-// con sus 3 pantallas separadas de verdad en Header.tsx, sin tocar: ahí
-// cada una ES una pantalla distinta, no hay duplicación que arreglar.
+// ninguna razón real. Ahora es una sola entrada "Inicio" (tab "chat", el
+// mismo valor de siempre — DesktopDashboard no cambia). Mobile sigue con
+// sus 3 pantallas separadas de verdad en Header.tsx, sin tocar: ahí cada
+// una ES una pantalla distinta, no hay duplicación que arreglar.
 const LIVE_DASHBOARD_TABS: TabId[] = ["chat", "events", "music"];
 
-const SECTIONS: { sectionKey: TranslationKey; items: { id: TabId; labelKey: TranslationKey; icon: typeof Bell }[] }[] = [
-  {
-    sectionKey: "menu_section_live",
-    items: [
-      { id: "chat", labelKey: "nav_live", icon: Radio },
-      { id: "channels", labelKey: "tab_channels", icon: Bookmark },
-    ],
-  },
-  {
-    sectionKey: "menu_section_settings",
-    items: [
-      { id: "notifications", labelKey: "tab_notifications", icon: Bell },
-      { id: "voices", labelKey: "tab_voices", icon: Mic },
-      { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
-      { id: "general", labelKey: "tab_general", icon: Settings },
-    ],
-  },
+// Lista plana (sin encabezados de sección) y en este orden exacto — pedido
+// explícito del usuario a partir de una referencia visual. "Alertas"
+// (antes agrupado junto con Voces/Lectura/Apariencia) pasa a ser el tercer
+// ítem, justo después de Canales.
+const ITEMS: { id: TabId; labelKey: TranslationKey; icon: typeof Bell }[] = [
+  { id: "chat", labelKey: "nav_home", icon: Home },
+  { id: "channels", labelKey: "tab_channels", icon: Bookmark },
+  { id: "notifications", labelKey: "tab_notifications", icon: Bell },
+  { id: "voices", labelKey: "tab_voices", icon: Mic },
+  { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
+  { id: "general", labelKey: "tab_general", icon: Settings },
 ];
 
 type Props = {
@@ -64,46 +58,41 @@ export function Sidebar({ active, onChange }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-3 py-4 space-y-4">
-        {SECTIONS.map((section) => (
-          <div key={section.sectionKey} className="space-y-1">
-            <p className="px-3 pb-1 text-[11px] font-semibold text-muted uppercase tracking-wide">
-              {t(section.sectionKey)}
-            </p>
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              // "chat" representa el dashboard combinado — también queda
-              // resaltado si active quedó en "events"/"music" (no debería
-              // pasar nunca desde este sidebar, pero por si llega por otro
-              // camino no se ve como que ninguna sección está activa).
-              const isActive = item.id === "chat" ? LIVE_DASHBOARD_TABS.includes(active) : active === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
-                    isActive
-                      ? "bg-primary/15 text-primary"
-                      : "text-text-soft hover:bg-bg-hover hover:text-text"
-                  }`}
-                >
-                  <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
-                  <span className="text-sm font-semibold truncate">{t(item.labelKey)}</span>
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-3 py-4 space-y-1">
+        {ITEMS.map((item) => {
+          const Icon = item.icon;
+          // "chat" representa el dashboard combinado — también queda
+          // resaltado si active quedó en "events"/"music" (no debería pasar
+          // nunca desde este sidebar, pero por si llega por otro camino no
+          // se ve como que ninguna sección está activa).
+          const isActive = item.id === "chat" ? LIVE_DASHBOARD_TABS.includes(active) : active === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onChange(item.id)}
+              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                isActive
+                  ? "bg-primary/15 text-primary"
+                  : "text-text-soft hover:bg-bg-hover hover:text-text"
+              }`}
+            >
+              {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-accent" />}
+              <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
+              <span className="text-sm font-semibold truncate">{t(item.labelKey)}</span>
+            </button>
+          );
+        })}
 
         {isAdmin && (
           <button
             onClick={() => onChange("admin")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mt-2 ${
+            className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mt-2 ${
               active === "admin"
                 ? "bg-error-400/15 text-error-400"
                 : "text-text-soft hover:bg-bg-hover hover:text-error-400"
             }`}
           >
+            {active === "admin" && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-error-400" />}
             <Shield className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={active === "admin" ? 2.5 : 1.8} />
             <span className="text-sm font-semibold">Admin</span>
           </button>
