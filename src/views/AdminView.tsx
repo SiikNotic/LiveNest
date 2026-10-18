@@ -6,9 +6,12 @@ import {
   Shield, Users, KeyRound, Plus, Trash2, Copy, Check, Loader2, AlertCircle,
   Clock, CheckCircle2, XCircle, Crown, LogOut, X, Ban, ShieldCheck,
   Mail, Calendar, BadgeCheck, Sparkles, Lock, SlidersHorizontal, Zap, RefreshCw, DollarSign,
+  Search, MoreHorizontal, ArrowUpDown, UserPlus, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import type { ReactNode } from "react";
 
 type AdminTab = "users" | "keys" | "licenses" | "permissions";
+type TFunc = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
 // Owner/Staff son nombres propios del rango — no se traducen, solo "Ninguno"/"None".
 function rankLabel(t: (key: TranslationKey) => string, r: UserRank): string {
@@ -174,7 +177,9 @@ export function AdminView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full space-y-5">
+    <>
+    {/* ============== MOBILE (<md) — sin tocar, igual que siempre ============== */}
+    <div className="md:hidden max-w-4xl mx-auto w-full space-y-5">
       {/* Admin header */}
       <div className="glass rounded-2xl p-4 border border-border">
         <div className="flex items-center gap-3">
@@ -456,25 +461,82 @@ export function AdminView() {
           )}
         </>
       )}
+    </div>
 
-      {selectedUser && (
-        <UserModal
-          user={selectedUser}
-          license={licenseByUser.get(selectedUser.id) ?? null}
-          fmtDate={fmtDate}
-          canBan={canBan}
-          canUnban={canUnban}
-          canChangeRank={canChangeRank}
-          canDelete={canDelete}
-          canManagePermissions={canManagePermissions}
-          error={permError}
-          onClose={() => { setSelectedUser(null); setPermError(null); }}
-          onBanToggle={() => setBanStatus(selectedUser.id, !selectedUser.banned)}
-          onSetRank={(r) => setRank(selectedUser.id, r)}
-          onDelete={() => deleteUser(selectedUser.id)}
-        />
+    {/* ============== DESKTOP / TABLET (md+) — rediseño ============== */}
+    <div className="hidden md:block w-full space-y-5">
+      <DesktopAdminHeader profile={profile} signOut={signOut} t={t} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {isOwner && <ElevenLabsUsageCard />}
+        {isOwner && <StripeMetricsCard />}
+      </div>
+
+      <DesktopAdminTabs tab={tab} setTab={setTab} isOwner={isOwner} t={t} />
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          {tab === "users" ? (
+            <DesktopUsersTable
+              users={users}
+              fmtDate={fmtDate}
+              onSelect={setSelectedUser}
+              t={t}
+            />
+          ) : tab === "keys" ? (
+            <DesktopKeysPanel
+              keys={keys}
+              labelMap={labelMap}
+              genLabel={genLabel}
+              setGenLabel={setGenLabel}
+              genQty={genQty}
+              setGenQty={setGenQty}
+              genLoading={genLoading}
+              generateKeys={generateKeys}
+              copiedId={copiedId}
+              copyKey={copyKey}
+              revokeKey={revokeKey}
+              deleteKey={deleteKey}
+              t={t}
+            />
+          ) : tab === "licenses" ? (
+            <DesktopLicensesPanel licenses={licenses} fmtDate={fmtDate} t={t} />
+          ) : (
+            isOwner && (
+              <DesktopPermissionsPanel
+                rankPerms={rankPerms}
+                setStaffPermission={setStaffPermission}
+                t={t}
+              />
+            )
+          )}
+        </>
       )}
     </div>
+
+    {/* ============== Compartido entre mobile y desktop ============== */}
+    {selectedUser && (
+      <UserModal
+        user={selectedUser}
+        license={licenseByUser.get(selectedUser.id) ?? null}
+        fmtDate={fmtDate}
+        canBan={canBan}
+        canUnban={canUnban}
+        canChangeRank={canChangeRank}
+        canDelete={canDelete}
+        canManagePermissions={canManagePermissions}
+        error={permError}
+        onClose={() => { setSelectedUser(null); setPermError(null); }}
+        onBanToggle={() => setBanStatus(selectedUser.id, !selectedUser.banned)}
+        onSetRank={(r) => setRank(selectedUser.id, r)}
+        onDelete={() => deleteUser(selectedUser.id)}
+      />
+    )}
+    </>
   );
 }
 
@@ -561,7 +623,8 @@ function ElevenLabsUsageCard() {
         </div>
       ) : usage ? (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2.5">
+          {/* Mobile: igual que siempre — 3 cajas de texto */}
+          <div className="md:hidden grid grid-cols-3 gap-2.5">
             <div className="bg-bg-soft rounded-xl p-2.5 border border-border">
               <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-0.5">{t("admin_total")}</p>
               <p className="text-sm font-bold">{usage.total_credits.toLocaleString(lang === "en" ? "en-US" : "es-ES")}</p>
@@ -573,6 +636,27 @@ function ElevenLabsUsageCard() {
             <div className="bg-bg-soft rounded-xl p-2.5 border border-border">
               <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-0.5">{t("admin_usage_pct")}</p>
               <p className="text-sm font-bold">{usage.percent_used}%</p>
+            </div>
+          </div>
+
+          {/* Desktop/tablet: mismos 3 valores, con anillo en vez de texto plano para el % */}
+          <div className="hidden md:grid grid-cols-3 gap-2.5">
+            <div className="bg-bg-soft rounded-xl p-3 border border-border">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">{t("admin_total")}</p>
+              <p className="text-lg font-extrabold">{usage.total_credits.toLocaleString(lang === "en" ? "en-US" : "es-ES")}</p>
+              <p className="text-[10px] text-muted-soft">{t("admin_total").toLowerCase()}</p>
+            </div>
+            <div className="bg-bg-soft rounded-xl p-3 border border-border">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1">{t("admin_used")}</p>
+              <p className="text-lg font-extrabold">{usage.used_credits.toLocaleString(lang === "en" ? "en-US" : "es-ES")}</p>
+              <p className="text-[10px] text-muted-soft">{t("admin_used").toLowerCase()}</p>
+            </div>
+            <div className="bg-bg-soft rounded-xl p-3 border border-border flex items-center gap-3">
+              <DonutRing percent={usage.percent_used} />
+              <div className="min-w-0">
+                <p className="text-lg font-extrabold">{usage.percent_used}%</p>
+                <p className="text-[10px] text-muted-soft leading-tight">{t("admin_usage_of_total")}</p>
+              </div>
             </div>
           </div>
 
@@ -688,44 +772,107 @@ function StripeMetricsCard() {
             </div>
           </div>
 
-          <div className="pt-1">
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
-              {t("admin_upcoming_renewals")}
-            </p>
-            {metrics.upcoming_renewals.length === 0 ? (
-              <p className="text-xs text-muted-soft">{t("admin_no_upcoming_renewals")}</p>
-            ) : (
-              <div className="space-y-1.5">
-                {metrics.upcoming_renewals.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-text-soft truncate flex-1">{r.email ?? "—"}</span>
-                    <span className="text-muted flex-shrink-0 ml-2">{fmtShortDate(r.renews_at)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Mobile: apiladas, igual que siempre */}
+          <div className="md:hidden">
+            <div className="pt-1">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+                {t("admin_upcoming_renewals")}
+              </p>
+              {metrics.upcoming_renewals.length === 0 ? (
+                <p className="text-xs text-muted-soft">{t("admin_no_upcoming_renewals")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {metrics.upcoming_renewals.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-text-soft truncate flex-1">{r.email ?? "—"}</span>
+                      <span className="text-muted flex-shrink-0 ml-2">{fmtShortDate(r.renews_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-1 border-t border-border">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5 mt-2">
+                {t("admin_recent_cancellations")}
+              </p>
+              {metrics.recent_cancellations.length === 0 ? (
+                <p className="text-xs text-muted-soft">{t("admin_no_recent_cancellations")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {metrics.recent_cancellations.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-text-soft truncate flex-1">{c.email ?? "—"}</span>
+                      <span className="text-error-400/80 flex-shrink-0 ml-2">{fmtShortDate(c.cancelled_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="pt-1 border-t border-border">
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-wide mb-1.5 mt-2">
-              {t("admin_recent_cancellations")}
-            </p>
-            {metrics.recent_cancellations.length === 0 ? (
-              <p className="text-xs text-muted-soft">{t("admin_no_recent_cancellations")}</p>
-            ) : (
-              <div className="space-y-1.5">
-                {metrics.recent_cancellations.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-text-soft truncate flex-1">{c.email ?? "—"}</span>
-                    <span className="text-error-400/80 flex-shrink-0 ml-2">{fmtShortDate(c.cancelled_at)}</span>
-                  </div>
-                ))}
+          {/* Desktop/tablet: dos tarjetas lado a lado, mismos datos */}
+          <div className="hidden md:grid grid-cols-2 gap-2.5">
+            <div className="bg-bg-soft rounded-xl p-3 border border-border">
+              <div className="flex items-center gap-1.5 mb-2">
+                <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
+                <p className="text-[10px] font-semibold text-muted uppercase tracking-wide">{t("admin_upcoming_renewals")}</p>
               </div>
-            )}
+              {metrics.upcoming_renewals.length === 0 ? (
+                <p className="text-xs text-muted-soft">{t("admin_no_upcoming_renewals")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {metrics.upcoming_renewals.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-text-soft truncate flex-1">{r.email ?? "—"}</span>
+                      <span className="text-muted flex-shrink-0 ml-2">{fmtShortDate(r.renews_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-bg-soft rounded-xl p-3 border border-border">
+              <div className="flex items-center gap-1.5 mb-2">
+                <XCircle className="w-3.5 h-3.5 text-error-400" />
+                <p className="text-[10px] font-semibold text-muted uppercase tracking-wide">{t("admin_recent_cancellations")}</p>
+              </div>
+              {metrics.recent_cancellations.length === 0 ? (
+                <p className="text-xs text-muted-soft">{t("admin_no_recent_cancellations")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {metrics.recent_cancellations.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <span className="text-text-soft truncate flex-1">{c.email ?? "—"}</span>
+                      <span className="text-error-400/80 flex-shrink-0 ml-2">{fmtShortDate(c.cancelled_at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function DonutRing({ percent, size = 44 }: { percent: number; size?: number }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const stroke = 4;
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - clamped / 100);
+  const color = clamped >= 90 ? "#f87171" : clamped >= 70 ? "#fbbf24" : "#22d3ee";
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0" aria-hidden>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-bg-hover" />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: "stroke-dashoffset 0.5s ease" }}
+      />
+    </svg>
   );
 }
 
@@ -966,4 +1113,463 @@ function genKey(): string {
     segments.push(seg);
   }
   return segments.join("-");
+}
+
+// ============================================================
+// Variante de escritorio/tablet (md+) — misma data y handlers que arriba,
+// solo cambia la presentación. Nada de esto se renderiza en mobile.
+// ============================================================
+
+function DesktopAdminHeader({ profile, signOut, t }: { profile: Profile | null; signOut: () => void; t: TFunc }) {
+  return (
+    <div className="glass rounded-2xl p-4 border border-border flex items-center gap-3">
+      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 border border-fuchsia-500/20">
+        <Shield className="w-5 h-5 text-fuchsia-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h1 className="text-base font-bold">{t("admin_panel_title")}</h1>
+        <p className="text-xs text-muted truncate">{profile?.username ? `@${profile.username}` : profile?.email}</p>
+      </div>
+      <button
+        onClick={signOut}
+        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-bg-soft border border-border text-xs font-semibold text-muted hover:text-error-400 transition-colors flex-shrink-0"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        {t("logout")}
+      </button>
+    </div>
+  );
+}
+
+function DesktopAdminTabs({ tab, setTab, isOwner, t }: { tab: AdminTab; setTab: (t: AdminTab) => void; isOwner: boolean; t: TFunc }) {
+  const items: { id: AdminTab; label: string; icon: typeof Users }[] = [
+    { id: "users", label: t("admin_tab_users"), icon: Users },
+    { id: "keys", label: t("admin_tab_keys"), icon: KeyRound },
+    { id: "licenses", label: t("admin_tab_licenses"), icon: Crown },
+    ...(isOwner ? [{ id: "permissions" as const, label: t("admin_tab_permissions"), icon: SlidersHorizontal }] : []),
+  ];
+  return (
+    <div className="flex gap-2">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = tab === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => setTab(item.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              active
+                ? "bg-gradient-to-r from-sky-500/15 to-fuchsia-500/15 text-sky-300 border border-sky-400/30"
+                : "bg-bg-soft text-muted border border-border hover:text-text"
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Colores del avatar por iniciales — mismo patrón que ChannelsView.tsx
+// (gradientFor), pero LiveNest no guarda foto de perfil por cuenta (solo la
+// del canal de TikTok conectado, que es otra cosa), así que acá siempre es
+// iniciales — no se inventa ninguna foto.
+const AVATAR_GRADIENTS = [
+  "from-sky-500/60 to-primary/60",
+  "from-fuchsia-500/60 to-purple-500/60",
+  "from-amber-500/60 to-orange-500/60",
+  "from-emerald-500/60 to-teal-500/60",
+  "from-rose-500/60 to-pink-500/60",
+];
+function gradientFor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
+type SortKey = "user" | "registered";
+const PAGE_SIZE = 8;
+
+function DesktopUsersTable({ users, fmtDate, onSelect, t }: {
+  users: Profile[];
+  fmtDate: (iso: string | null) => string;
+  onSelect: (u: Profile) => void;
+  t: TFunc;
+}) {
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("registered");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+
+  // Búsqueda por nombre de usuario/handle — nunca por email (no se muestra
+  // en esta lista, ver requisito de privacidad del correo).
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase().replace(/^@/, "");
+    if (!q) return users;
+    return users.filter((u) => (u.username ?? "").toLowerCase().includes(q));
+  }, [users, query]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const cmp = sortKey === "user"
+        ? (a.username ?? "").localeCompare(b.username ?? "")
+        : new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  useEffect(() => { setPage(0); }, [query, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages - 1);
+  const pageItems = sorted.slice(pageSafe * PAGE_SIZE, pageSafe * PAGE_SIZE + PAGE_SIZE);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("admin_search_placeholder")}
+            className="input pl-9"
+          />
+        </div>
+        {/* No existe todavía un flujo real para crear cuentas desde el panel
+            de administración (los usuarios se registran ellos mismos desde
+            AuthView) — el botón se muestra para calzar con la referencia
+            visual, pero deshabilitado, en vez de simular un alta falsa. */}
+        <button
+          disabled
+          title={t("admin_add_user_unavailable")}
+          className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold opacity-50 cursor-not-allowed flex-shrink-0"
+        >
+          <UserPlus className="w-4 h-4" />
+          {t("admin_add_user")}
+        </button>
+      </div>
+
+      <div className="glass rounded-2xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-bg-soft">
+                <SortableTh label={t("admin_col_user")} onClick={() => toggleSort("user")} active={sortKey === "user"} dir={sortDir} />
+                <SortableTh label={t("admin_col_registered")} onClick={() => toggleSort("registered")} active={sortKey === "registered"} dir={sortDir} />
+                <th className="text-left px-4 py-3 text-[11px] font-bold text-muted uppercase tracking-wide">{t("admin_col_role")}</th>
+                <th className="text-left px-4 py-3 text-[11px] font-bold text-muted uppercase tracking-wide">{t("admin_col_status")}</th>
+                <th className="text-right px-4 py-3 text-[11px] font-bold text-muted uppercase tracking-wide">{t("admin_col_actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((u) => {
+                // Nombre de usuario real (profiles.username) — el mismo
+                // campo que ya exige el resto de la app para poder usarla
+                // (ver el gate de App.tsx), nunca el email. Cuenta vieja sin
+                // username todavía: alternativa explícita, no se inventa uno.
+                const label = u.username ?? t("admin_no_username");
+                const roleClass = u.rank === "owner" ? "bg-accent/15 text-accent" : u.rank === "staff" ? "bg-primary/15 text-primary" : "bg-sky-500/15 text-sky-300";
+                const roleLabel = u.rank === "owner" ? "Owner" : u.rank === "staff" ? "Staff" : t("admin_member_badge");
+                return (
+                  <tr
+                    key={u.id}
+                    onClick={() => onSelect(u)}
+                    className="border-b border-border last:border-0 hover:bg-bg-hover/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradientFor(u.username ?? u.id)} flex items-center justify-center text-xs font-bold flex-shrink-0 border border-border`}>
+                          {label.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold truncate">{label}</p>
+                          {u.username && <p className="text-[11px] text-muted truncate">@{u.username}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-text-soft whitespace-nowrap">{fmtDate(u.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap ${roleClass}`}>{roleLabel}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg whitespace-nowrap ${
+                          u.banned ? "bg-error-400/15 text-error-400" : "bg-success-400/15 text-success-400"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${u.banned ? "bg-error-400" : "bg-success-400"}`} />
+                        {u.banned ? t("admin_account_inactive") : t("admin_account_active")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSelect(u); }}
+                        className="w-8 h-8 rounded-lg hover:bg-bg-hover text-muted hover:text-text transition-colors inline-flex items-center justify-center"
+                        title={t("admin_col_actions")}
+                        aria-label={t("admin_col_actions")}
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {pageItems.length === 0 && (
+          <p className="text-center text-sm text-muted py-10">{t("admin_no_users")}</p>
+        )}
+      </div>
+
+      {sorted.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>
+            {t("admin_showing_range", {
+              from: pageSafe * PAGE_SIZE + 1,
+              to: Math.min(sorted.length, (pageSafe + 1) * PAGE_SIZE),
+              total: sorted.length,
+            })}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={pageSafe === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center disabled:opacity-30 hover:text-text transition-colors"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              disabled={pageSafe >= totalPages - 1}
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center disabled:opacity-30 hover:text-text transition-colors"
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SortableTh({ label, onClick, active, dir }: { label: string; onClick: () => void; active: boolean; dir: "asc" | "desc" }) {
+  return (
+    <th className="text-left px-4 py-3">
+      <button
+        onClick={onClick}
+        className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${active ? "text-primary" : "text-muted hover:text-text-soft"}`}
+      >
+        {label}
+        <ArrowUpDown className={`w-3 h-3 transition-transform ${active && dir === "asc" ? "rotate-180" : ""}`} />
+      </button>
+    </th>
+  );
+}
+
+function DesktopKeysPanel({
+  keys, labelMap, genLabel, setGenLabel, genQty, setGenQty, genLoading, generateKeys, copiedId, copyKey, revokeKey, deleteKey, t,
+}: {
+  keys: LicenseKey[];
+  labelMap: Record<string, string>;
+  genLabel: "7" | "30" | "365" | "lifetime";
+  setGenLabel: (v: "7" | "30" | "365" | "lifetime") => void;
+  genQty: number;
+  setGenQty: (v: number) => void;
+  genLoading: boolean;
+  generateKeys: () => void;
+  copiedId: string | null;
+  copyKey: (id: string, key: string) => void;
+  revokeKey: (id: string) => void;
+  deleteKey: (id: string) => void;
+  t: TFunc;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-4 border border-border space-y-3">
+        <div className="flex items-center gap-2">
+          <Plus className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-bold">{t("admin_generate_keys_title")}</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
+            {(["7", "30", "365", "lifetime"] as const).map((d) => (
+              <button
+                key={d}
+                onClick={() => setGenLabel(d)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  genLabel === d ? "bg-primary/15 text-primary border border-primary/30" : "bg-bg-soft text-muted border border-border hover:text-text"
+                }`}
+              >
+                {labelMap[d]}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <label className="text-xs text-muted">{t("admin_quantity_label")}</label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={genQty}
+              onChange={(e) => setGenQty(Math.max(1, Math.min(100, +e.target.value)))}
+              className="w-16 px-2 py-1.5 rounded-lg bg-bg-soft border border-border text-sm text-center focus:outline-none"
+            />
+            <button
+              onClick={generateKeys}
+              disabled={genLoading}
+              className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {genLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {t("admin_generate_button")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        {keys.map((k) => (
+          <div key={k.id} className="glass rounded-xl p-3.5 border border-border flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[140px]">
+              <code className="text-sm font-mono font-bold text-text break-all">{k.key}</code>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-muted">{labelMap[k.duration_label]}</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  k.status === "available" ? "bg-success-400/15 text-success-400"
+                  : k.status === "redeemed" ? "bg-primary/15 text-primary"
+                  : "bg-error-400/15 text-error-400"
+                }`}>
+                  {k.status === "available" ? t("admin_key_available") : k.status === "redeemed" ? t("admin_key_redeemed") : t("admin_key_revoked")}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {k.status === "available" && (
+                <>
+                  <button
+                    onClick={() => copyKey(k.id, k.key)}
+                    className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-primary transition-colors"
+                    title={t("admin_key_copy")}
+                    aria-label={t("admin_key_copy")}
+                  >
+                    {copiedId === k.id ? <Check className="w-3.5 h-3.5 text-success-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={() => revokeKey(k.id)}
+                    className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-warning-400 transition-colors"
+                    title={t("admin_key_revoke")}
+                    aria-label={t("admin_key_revoke")}
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => deleteKey(k.id)}
+                className="w-8 h-8 rounded-lg bg-bg-soft border border-border flex items-center justify-center text-muted hover:text-error-400 transition-colors"
+                title={t("admin_key_delete")}
+                aria-label={t("admin_key_delete")}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {keys.length === 0 && <p className="text-center text-sm text-muted py-10">{t("admin_no_keys")}</p>}
+    </div>
+  );
+}
+
+function DesktopLicensesPanel({ licenses, fmtDate, t }: {
+  licenses: (UserLicense & { profile_email?: string })[];
+  fmtDate: (iso: string | null) => string;
+  t: TFunc;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+      {licenses.map((l) => (
+        <div key={l.id} className="glass rounded-xl p-3.5 border border-border flex flex-wrap items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-bg-soft flex items-center justify-center flex-shrink-0">
+            {l.status === "active" ? (
+              <CheckCircle2 className="w-4 h-4 text-success-400" />
+            ) : l.status === "cancelled" ? (
+              <XCircle className="w-4 h-4 text-error-400" />
+            ) : (
+              <Clock className="w-4 h-4 text-warning-400" />
+            )}
+          </div>
+          <div className="flex-1 min-w-[140px]">
+            <p className="text-sm font-bold truncate">{l.profile_email}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-muted">{licenseSourceLabel(l.source, t)}</span>
+              <span className="text-[10px] text-muted">·</span>
+              <span className="text-[10px] text-muted">{l.expires_at ? fmtDate(l.expires_at) : t("admin_duration_lifetime")}</span>
+            </div>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0 ${
+            l.status === "active" ? "bg-success-400/15 text-success-400"
+            : l.status === "cancelled" ? "bg-error-400/15 text-error-400"
+            : "bg-warning-400/15 text-warning-400"
+          }`}>
+            {l.status === "active" ? t("admin_active") : l.status === "cancelled" ? t("admin_license_cancelled") : t("admin_license_expired")}
+          </span>
+        </div>
+      ))}
+      {licenses.length === 0 && (
+        <p className="text-center text-sm text-muted py-10 col-span-full">{t("admin_no_licenses")}</p>
+      )}
+    </div>
+  );
+}
+
+function DesktopPermissionsPanel({ rankPerms, setStaffPermission, t }: {
+  rankPerms: RankPermissions | null;
+  setStaffPermission: (key: "can_ban" | "can_unban", value: boolean) => void;
+  t: TFunc;
+}) {
+  return (
+    <div className="max-w-xl space-y-4">
+      <div className="glass rounded-2xl p-4 border border-border">
+        <div className="flex items-center gap-2 mb-1">
+          <SlidersHorizontal className="w-4 h-4 text-primary" />
+          <h2 className="text-sm font-bold">{t("admin_perms_title")}</h2>
+        </div>
+        <p className="text-xs text-muted">{t("admin_perms_desc")}</p>
+      </div>
+
+      <div className="glass rounded-xl border border-border divide-y divide-border">
+        <PermissionRow
+          label={t("admin_perm_ban_label")}
+          description={t("admin_perm_ban_desc")}
+          checked={!!rankPerms?.can_ban}
+          onChange={(v) => setStaffPermission("can_ban", v)}
+        />
+        <PermissionRow
+          label={t("admin_perm_unban_label")}
+          description={t("admin_perm_unban_desc")}
+          checked={!!rankPerms?.can_unban}
+          onChange={(v) => setStaffPermission("can_unban", v)}
+        />
+      </div>
+
+      <div className="glass rounded-xl p-3.5 border border-border flex items-start gap-2.5">
+        <Lock className="w-4 h-4 text-muted flex-shrink-0 mt-0.5" />
+        <p className="text-[11px] text-muted leading-relaxed">{t("admin_owner_only_note")}</p>
+      </div>
+    </div>
+  );
 }

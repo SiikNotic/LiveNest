@@ -179,6 +179,21 @@ export const translations = {
     admin_err_delete_account: "No se pudo borrar la cuenta: solo el Owner puede hacerlo.",
     admin_rank_none: "Ninguno",
 
+    // AdminView — variante de escritorio/tablet (misma data, presentación nueva)
+    admin_search_placeholder: "Buscar usuario...",
+    admin_add_user: "Agregar usuario",
+    admin_add_user_unavailable: "Todavía no existe un flujo para crear cuentas desde el panel de administración.",
+    admin_col_user: "Usuario",
+    admin_col_registered: "Fecha de registro",
+    admin_col_role: "Rol",
+    admin_col_status: "Estado",
+    admin_col_actions: "Acciones",
+    admin_account_active: "Activo",
+    admin_account_inactive: "Inactivo",
+    admin_no_username: "Usuario sin nombre",
+    admin_showing_range: "Mostrando {from}–{to} de {total}",
+    admin_usage_of_total: "Uso del total",
+
     // Mi cuenta
     account_choose_username: "Elige un nombre de usuario",
     account_save: "Guardar",
@@ -1060,6 +1075,20 @@ export const translations = {
     admin_err_no_permission_perms: "You don't have permission to modify permissions.",
     admin_err_delete_account: "Couldn't delete the account: only the Owner can do that.",
     admin_rank_none: "None",
+
+    admin_search_placeholder: "Search user...",
+    admin_add_user: "Add user",
+    admin_add_user_unavailable: "There isn't an account-creation flow from the admin panel yet.",
+    admin_col_user: "User",
+    admin_col_registered: "Registered",
+    admin_col_role: "Role",
+    admin_col_status: "Status",
+    admin_col_actions: "Actions",
+    admin_account_active: "Active",
+    admin_account_inactive: "Inactive",
+    admin_no_username: "No username",
+    admin_showing_range: "Showing {from}–{to} of {total}",
+    admin_usage_of_total: "of total usage",
 
     account_choose_username: "Choose a username",
     account_save: "Save",
