@@ -287,10 +287,13 @@ export function MusicView() {
             {/* max-h además de aspect-video: en un panel angosto y alto (el
                 de Música en el dashboard de escritorio/tablet, por ej.) el
                 aspect-ratio 16:9 puro podía crecer más de lo que el panel
-                tenía disponible, tapando los controles de abajo. El tope en
-                vh lo mantiene dentro de lo razonable sin dejar de escalar
-                con el ancho de la columna. */}
-            <div className={`relative w-full aspect-video ${isNative ? "" : "max-h-[38vh]"} bg-black rounded-t-2xl overflow-hidden flex items-center justify-center`}>
+                tenía disponible, tapando los controles de abajo. Tope fijo
+                en px (no vh) a propósito: un tope relativo al alto de
+                pantalla todavía podía dar una miniatura enorme en
+                pantallas altas — acá el panel del dashboard queda
+                "estático" de verdad, del mismo tamaño sin importar el
+                dispositivo. */}
+            <div className={`relative w-full aspect-video ${isNative ? "" : "max-h-[180px]"} bg-black rounded-t-2xl overflow-hidden flex items-center justify-center`}>
               {currentSong && currentSong.video_id ? (
                 <AnimatePresence mode="popLayout">
                   <motion.img

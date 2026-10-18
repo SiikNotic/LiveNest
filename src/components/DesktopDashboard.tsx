@@ -51,26 +51,29 @@ const PANEL_COMPONENTS: Record<PanelId, React.ComponentType> = {
 
 const ALL_PANELS: PanelId[] = ["chat", "events", "music"];
 
+// Música y Alertas son estáticos en los 4 presets (pedido explícito: esos
+// dos no se arrastran ni se redimensionan, solo Chat). `static: true` en
+// react-grid-layout ya desactiva drag Y resize juntos para ese panel.
 const LAYOUT_PRESETS: Record<string, Layout[]> = {
   default: [
     { i: "chat", x: 0, y: 0, w: 6, h: 10, minW: 3, minH: 6 },
-    { i: "events", x: 6, y: 0, w: 3, h: 10, minW: 2, minH: 6 },
-    { i: "music", x: 9, y: 0, w: 3, h: 10, minW: 3, minH: 6 },
+    { i: "events", x: 6, y: 0, w: 3, h: 10, static: true },
+    { i: "music", x: 9, y: 0, w: 3, h: 10, static: true },
   ],
   chatFocus: [
     { i: "chat", x: 0, y: 0, w: 8, h: 12, minW: 3, minH: 6 },
-    { i: "events", x: 8, y: 0, w: 4, h: 6, minW: 2, minH: 4 },
-    { i: "music", x: 8, y: 6, w: 4, h: 6, minW: 3, minH: 4 },
+    { i: "events", x: 8, y: 0, w: 4, h: 6, static: true },
+    { i: "music", x: 8, y: 6, w: 4, h: 6, static: true },
   ],
   musicFocus: [
-    { i: "music", x: 0, y: 0, w: 7, h: 12, minW: 3, minH: 6 },
+    { i: "music", x: 0, y: 0, w: 7, h: 12, static: true },
     { i: "chat", x: 7, y: 0, w: 5, h: 7, minW: 3, minH: 4 },
-    { i: "events", x: 7, y: 7, w: 5, h: 5, minW: 2, minH: 4 },
+    { i: "events", x: 7, y: 7, w: 5, h: 5, static: true },
   ],
   compact: [
     { i: "chat", x: 0, y: 0, w: 5, h: 8, minW: 3, minH: 5 },
-    { i: "events", x: 5, y: 0, w: 3, h: 8, minW: 2, minH: 5 },
-    { i: "music", x: 8, y: 0, w: 4, h: 8, minW: 3, minH: 5 },
+    { i: "events", x: 5, y: 0, w: 3, h: 8, static: true },
+    { i: "music", x: 8, y: 0, w: 4, h: 8, static: true },
   ],
 };
 
@@ -84,13 +87,20 @@ const PRESET_LABEL_KEYS: { id: keyof typeof LAYOUT_PRESETS; labelKey: Translatio
 const STORAGE_KEY = "livenest_dashboard_layout";
 const HIDDEN_KEY = "livenest_dashboard_hidden";
 
+// Fuerza `static: true` en todo lo que no sea "chat" — cubre tanto los
+// presets de arriba como un layout guardado en localStorage de antes de
+// este cambio, que todavía no tenía la marca.
+function withStaticFlags(layout: Layout[]): Layout[] {
+  return layout.map((l) => (l.i === "chat" ? l : { ...l, static: true }));
+}
+
 function loadStoredLayout(): Layout[] | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
-    return parsed;
+    return withStaticFlags(parsed);
   } catch {
     return null;
   }
@@ -145,7 +155,7 @@ export function DesktopDashboard() {
     // react-grid-layout solo reporta los items visibles en cada callback —
     // conservamos la posición guardada de los ocultos combinando ambos.
     setLayout((prev) => {
-      const merged = [...next];
+      const merged = withStaticFlags([...next]);
       for (const item of prev) {
         if (!merged.some((m) => m.i === item.i)) merged.push(item);
       }
@@ -242,10 +252,15 @@ export function DesktopDashboard() {
         >
           {visiblePanels.map((id) => {
             const Comp = PANEL_COMPONENTS[id];
+            const isStatic = id !== "chat";
             return (
               <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
-                <div className="panel-drag-handle flex items-center gap-2 px-3 py-2 border-b border-border bg-bg-soft cursor-move flex-shrink-0">
-                  <GripVertical className="w-3.5 h-3.5 text-muted" />
+                <div
+                  className={`flex items-center gap-2 px-3 py-2 border-b border-border bg-bg-soft flex-shrink-0 ${
+                    isStatic ? "" : "panel-drag-handle cursor-move"
+                  }`}
+                >
+                  {!isStatic && <GripVertical className="w-3.5 h-3.5 text-muted" />}
                   <span className="text-xs font-bold text-text-soft flex-1">{t(PANEL_LABEL_KEYS[id])}</span>
                   <button
                     onClick={() => hidePanel(id)}

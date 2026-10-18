@@ -19,11 +19,12 @@ const MIN_ROW_HEIGHT = 20;
 const isNative = Capacitor.isNativePlatform();
 
 /*
-Versión tablet del dashboard: 2 columnas, objetivos táctiles grandes,
-reordenable por arrastre (react-grid-layout ya soporta touch de forma
-nativa), pero SIN redimensionar por esquina — en pantallas táctiles medias,
-el resize por arrastre de esquina es propenso a errores; reordenar alcanza
-para que el streamer priorice lo que necesita ver.
+Versión tablet del dashboard: 2 columnas, objetivos táctiles grandes. Solo
+Chat es reordenable por arrastre (react-grid-layout ya soporta touch de
+forma nativa); Música y Alertas son estáticos — ni se arrastran ni se
+redimensionan, siempre el mismo tamaño y lugar (pedido explícito). Tampoco
+hay resize por esquina para nadie — en pantallas táctiles medias, el resize
+por arrastre es propenso a errores.
 
 No es el layout de escritorio encogido ni el de móvil estirado — usa su
 propia grilla de 2 columnas con paneles más altos.
@@ -45,18 +46,27 @@ const PANEL_COMPONENTS: Record<PanelId, React.ComponentType> = {
 
 const DEFAULT_LAYOUT: Layout[] = [
   { i: "chat", x: 0, y: 0, w: 1, h: 14 },
-  { i: "music", x: 1, y: 0, w: 1, h: 8 },
-  { i: "events", x: 1, y: 8, w: 1, h: 8 },
+  { i: "music", x: 1, y: 0, w: 1, h: 7, static: true },
+  { i: "events", x: 1, y: 7, w: 1, h: 7, static: true },
 ];
 
 const STORAGE_KEY = "livenest_tablet_layout";
+
+// Música y Alertas son estáticos (pedido explícito: nada se arrastra ni
+// crece ahí) — Chat sigue moviéndose libre. Un layout viejo guardado en
+// localStorage antes de este cambio no tiene la marca `static`, así que
+// se la forzamos igual al cargarlo (conserva la posición que el usuario
+// ya había elegido, solo deja de poder reordenarse).
+function withStaticFlags(layout: Layout[]): Layout[] {
+  return layout.map((l) => (l.i === "chat" ? l : { ...l, static: true }));
+}
 
 function loadStoredLayout(): Layout[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_LAYOUT;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length === 3 ? parsed : DEFAULT_LAYOUT;
+    return Array.isArray(parsed) && parsed.length === 3 ? withStaticFlags(parsed) : DEFAULT_LAYOUT;
   } catch {
     return DEFAULT_LAYOUT;
   }
@@ -67,8 +77,9 @@ export function TabletDashboard() {
   const [layout, setLayout] = useState<Layout[]>(loadStoredLayout);
 
   const handleLayoutChange = useCallback((next: Layout[]) => {
-    setLayout(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const withFlags = withStaticFlags(next);
+    setLayout(withFlags);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(withFlags));
   }, []);
 
   const resetLayout = () => {
@@ -115,10 +126,15 @@ export function TabletDashboard() {
         >
           {panelOrder.map((id) => {
             const Comp = PANEL_COMPONENTS[id];
+            const isStatic = id !== "chat";
             return (
               <div key={id} className="rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden flex flex-col">
-                <div className="panel-drag-handle flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-soft cursor-move flex-shrink-0 touch-none">
-                  <GripVertical className="w-4 h-4 text-muted" />
+                <div
+                  className={`flex items-center gap-2 px-4 py-3 border-b border-border bg-bg-soft flex-shrink-0 ${
+                    isStatic ? "" : "panel-drag-handle cursor-move touch-none"
+                  }`}
+                >
+                  {!isStatic && <GripVertical className="w-4 h-4 text-muted" />}
                   <span className="text-sm font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
                 </div>
                 <div className="flex-1 overflow-y-auto scrollbar-thin p-3">
