@@ -9,9 +9,9 @@
 /* --- Midnight (default) --- */
 [data-theme="midnight"] {
   --c-bg: #0a0b0f;
-  --c-bg-soft: rgba(20, 21, 26, 0.42);
-  --c-bg-card: rgba(22, 24, 29, 0.55);
-  --c-bg-hover: rgba(28, 30, 37, 0.72);
+  --c-bg-soft: #14151a;
+  --c-bg-card: #16181d;
+  --c-bg-hover: #1c1e25;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #06b6d4;
@@ -36,9 +36,9 @@
 /* --- Mono (Black & White) --- */
 [data-theme="mono"] {
   --c-bg: #0d0d0d;
-  --c-bg-soft: rgba(24, 24, 24, 0.42);
-  --c-bg-card: rgba(28, 28, 28, 0.55);
-  --c-bg-hover: rgba(36, 36, 36, 0.72);
+  --c-bg-soft: #181818;
+  --c-bg-card: #1c1c1c;
+  --c-bg-hover: #242424;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #e5e5e5;
@@ -63,9 +63,9 @@
 /* --- Neon --- */
 [data-theme="neon"] {
   --c-bg: #0a0a14;
-  --c-bg-soft: rgba(18, 18, 31, 0.42);
-  --c-bg-card: rgba(22, 22, 42, 0.55);
-  --c-bg-hover: rgba(30, 30, 54, 0.72);
+  --c-bg-soft: #12121f;
+  --c-bg-card: #16162a;
+  --c-bg-hover: #1e1e36;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #d946ef;
@@ -90,9 +90,9 @@
 /* --- iOS / Apple --- */
 [data-theme="ios"] {
   --c-bg: #f2f2f7;
-  --c-bg-soft: rgba(229, 229, 234, 0.42);
-  --c-bg-card: rgba(255, 255, 255, 0.55);
-  --c-bg-hover: rgba(240, 240, 245, 0.72);
+  --c-bg-soft: #e5e5ea;
+  --c-bg-card: #ffffff;
+  --c-bg-hover: #f0f0f5;
   --c-border: rgba(0, 0, 0, 0.1);
   --c-border-soft: rgba(0, 0, 0, 0.06);
   --c-primary: #007aff;
@@ -117,9 +117,9 @@
 /* --- Android / Material --- */
 [data-theme="android"] {
   --c-bg: #141118;
-  --c-bg-soft: rgba(29, 27, 32, 0.42);
-  --c-bg-card: rgba(33, 31, 38, 0.55);
-  --c-bg-hover: rgba(42, 39, 48, 0.72);
+  --c-bg-soft: #1d1b20;
+  --c-bg-card: #211f26;
+  --c-bg-hover: #2a2730;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #d0bcff;
@@ -144,9 +144,9 @@
 /* --- Aurora (violet / cyan, dashboard-style) --- */
 [data-theme="aurora"] {
   --c-bg: #0b0a17;
-  --c-bg-soft: rgba(19, 18, 38, 0.42);
-  --c-bg-card: rgba(23, 21, 49, 0.55);
-  --c-bg-hover: rgba(31, 28, 61, 0.72);
+  --c-bg-soft: #131226;
+  --c-bg-card: #171531;
+  --c-bg-hover: #1f1c3d;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #a855f7;
@@ -171,9 +171,9 @@
 /* --- Sunset (amber / coral, warm) --- */
 [data-theme="sunset"] {
   --c-bg: #120c0a;
-  --c-bg-soft: rgba(28, 19, 16, 0.42);
-  --c-bg-card: rgba(33, 23, 20, 0.55);
-  --c-bg-hover: rgba(43, 30, 25, 0.72);
+  --c-bg-soft: #1c1310;
+  --c-bg-card: #211714;
+  --c-bg-hover: #2b1e19;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #fb923c;
@@ -198,9 +198,9 @@
 /* --- Ocean (deep navy / blue / cyan) --- */
 [data-theme="ocean"] {
   --c-bg: #060f17;
-  --c-bg-soft: rgba(12, 27, 38, 0.42);
-  --c-bg-card: rgba(16, 33, 46, 0.55);
-  --c-bg-hover: rgba(21, 41, 58, 0.72);
+  --c-bg-soft: #0c1b26;
+  --c-bg-card: #10212e;
+  --c-bg-hover: #15293a;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #0ea5e9;
@@ -222,28 +222,33 @@
   --shadow-card: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
-/* --- Violet (deep purple / lavender / pink) --- */
+/* --- Violet (indigo / violeta frío, estilo dashboard admin) ---
+   Afinado para igualar una referencia de estilo que el usuario mandó
+   (dashboard tipo "StreamCrea": fondo casi negro frío, acento índigo/
+   violeta, tarjetas planas sin blur) — mismo criterio de siempre: tomar
+   el estilo, nunca copiar nombres/contenido. Es el tema ya más cercano
+   de los 13, así que se ajusta este en vez de agregar un 14to. */
 [data-theme="violet"] {
-  --c-bg: #0e0a17;
-  --c-bg-soft: rgba(23, 18, 36, 0.42);
-  --c-bg-card: rgba(28, 22, 41, 0.55);
-  --c-bg-hover: rgba(37, 29, 54, 0.72);
+  --c-bg: #0a0a12;
+  --c-bg-soft: #121220;
+  --c-bg-card: #161625;
+  --c-bg-hover: #1e1e30;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
-  --c-primary: #8b5cf6;
-  --c-primary-50: #f5f3ff; --c-primary-100: #ede9fe; --c-primary-200: #ddd6fe;
-  --c-primary-300: #c4b5fd; --c-primary-400: #a78bfa; --c-primary-500: #8b5cf6;
-  --c-primary-600: #7c3aed; --c-primary-700: #6d28d9; --c-primary-800: #5b21b6; --c-primary-900: #4c1d95;
-  --c-accent: #f472b6; --c-accent-400: #f9a8d4; --c-accent-600: #ec4899;
+  --c-primary: #7c5cff;
+  --c-primary-50: #f4f2ff; --c-primary-100: #e9e5ff; --c-primary-200: #d4ccff;
+  --c-primary-300: #b3a3ff; --c-primary-400: #9478ff; --c-primary-500: #7c5cff;
+  --c-primary-600: #6c3ff0; --c-primary-700: #5b2fd1; --c-primary-800: #4a24a8; --c-primary-900: #3a1c80;
+  --c-accent: #60a5fa; --c-accent-400: #93c5fd; --c-accent-600: #3b82f6;
   --c-warning: #fbbf24; --c-warning-400: #fcd34d; --c-warning-600: #f59e0b;
   --c-error: #fb7185; --c-error-400: #fda4af; --c-error-600: #e11d48;
   --c-success: #4ade80; --c-success-400: #86efac; --c-success-600: #22c55e;
-  --c-muted: #a99fc4; --c-muted-soft: #867ba4;
-  --c-text: #f6f2ff; --c-text-soft: #ded4f2;
-  --c-glow: rgba(139, 92, 246, 0.2);
-  --c-glow-accent: rgba(244, 114, 182, 0.16);
-  --c-bg-gradient1: rgba(139, 92, 246, 0.38);
-  --c-bg-gradient2: rgba(244, 114, 182, 0.26);
+  --c-muted: #8f8fa8; --c-muted-soft: #6f6f88;
+  --c-text: #f3f2fa; --c-text-soft: #d8d6e8;
+  --c-glow: rgba(124, 92, 255, 0.2);
+  --c-glow-accent: rgba(96, 165, 250, 0.16);
+  --c-bg-gradient1: rgba(124, 92, 255, 0.38);
+  --c-bg-gradient2: rgba(96, 165, 250, 0.26);
   --font-sans: "Inter", system-ui, sans-serif;
   --radius: 1.125rem;
   --shadow-card: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
@@ -252,9 +257,9 @@
 /* --- Ember (black / red / orange, fire) --- */
 [data-theme="ember"] {
   --c-bg: #0d0705;
-  --c-bg-soft: rgba(24, 13, 9, 0.42);
-  --c-bg-card: rgba(29, 16, 11, 0.55);
-  --c-bg-hover: rgba(39, 21, 14, 0.72);
+  --c-bg-soft: #180d09;
+  --c-bg-card: #1d100b;
+  --c-bg-hover: #27150e;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #ef4444;
@@ -279,9 +284,9 @@
 /* --- Candy (dark purple / pink / cyan) --- */
 [data-theme="candy"] {
   --c-bg: #12081a;
-  --c-bg-soft: rgba(29, 16, 41, 0.42);
-  --c-bg-card: rgba(36, 20, 50, 0.55);
-  --c-bg-hover: rgba(48, 27, 66, 0.72);
+  --c-bg-soft: #1d1029;
+  --c-bg-card: #241432;
+  --c-bg-hover: #301b42;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #ec4899;
@@ -306,9 +311,9 @@
 /* --- Forest (dark green / emerald / teal) --- */
 [data-theme="forest"] {
   --c-bg: #070f0b;
-  --c-bg-soft: rgba(14, 26, 20, 0.42);
-  --c-bg-card: rgba(17, 32, 24, 0.55);
-  --c-bg-hover: rgba(23, 41, 31, 0.72);
+  --c-bg-soft: #0e1a14;
+  --c-bg-card: #112018;
+  --c-bg-hover: #17291f;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #10b981;
@@ -333,9 +338,9 @@
 /* --- Gold (identidad de marca: oro, plata y negro del logo) --- */
 [data-theme="gold"] {
   --c-bg: #050505;
-  --c-bg-soft: rgba(11, 12, 14, 0.42);
-  --c-bg-card: rgba(18, 19, 23, 0.55);
-  --c-bg-hover: rgba(28, 30, 36, 0.72);
+  --c-bg-soft: #0b0c0e;
+  --c-bg-card: #121317;
+  --c-bg-hover: #1c1e24;
   --c-border: rgba(255, 255, 255, 0.14);
   --c-border-soft: rgba(255, 255, 255, 0.08);
   --c-primary: #d89a16;
@@ -366,16 +371,12 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Tres manchas de color grandes y fijas (no se mueven con el scroll) —
-       es lo que hace que el glassmorphism se note: las superficies "de
-       vidrio" (.card, .glass, etc.) difuminan ESTO de fondo. Sin manchas de
-       color debajo, blurear un fondo plano no se ve a vidrio, se ve igual
-       que antes nomás un poco más transparente. */
-    background-image:
-      radial-gradient(ellipse 70% 50% at 15% -10%, var(--c-bg-gradient1), transparent),
-      radial-gradient(ellipse 60% 55% at 85% 15%, var(--c-bg-gradient2), transparent),
-      radial-gradient(ellipse 65% 50% at 50% 110%, var(--c-bg-gradient1), transparent);
-    background-attachment: fixed;
+    /* Fondo plano y uniforme — sin el mesh de manchas de color que tenía
+       antes (solo tenía sentido para que se notara el blur del
+       glassmorphism; con tarjetas opacas, manchas de color debajo no
+       aportan nada, solo ensucian el look limpio y chato que se busca
+       ahora). --c-bg-gradient1/2 se dejan definidas igual porque
+       OnboardingView todavía las usa para su propio fondo. */
   }
   ::selection { background: var(--c-primary); color: #fff; opacity: 0.25; }
 }
@@ -385,8 +386,6 @@
     @apply bg-bg-card border border-border rounded-2xl p-4;
     border-radius: var(--radius);
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
     /* El release (volver a tamaño normal) usa una curva con un poquitito
        de overshoot — se siente "físico" sin JS, sin ser un rebote de
        videojuego. El press en sí (ver .card-press:active) es casi
@@ -421,8 +420,6 @@
   .btn-primary:hover { box-shadow: 0 4px 18px var(--c-glow); }
   .btn-ghost {
     @apply btn bg-bg-hover text-text-soft hover:text-text border border-border;
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
   .btn-accent {
     @apply btn bg-accent text-bg hover:bg-accent-600;
@@ -432,8 +429,6 @@
     @apply w-full bg-bg-soft border border-border rounded-xl px-3.5 py-2.5 text-sm text-text;
     @apply placeholder:text-muted-soft focus:outline-none transition-all duration-200;
     --tw-ring-color: var(--c-primary);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
   .input:focus {
     border-color: var(--c-primary);
@@ -459,8 +454,6 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .glass {
     background: var(--c-bg-card);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
     border-bottom: 1px solid var(--c-border);
   }
   .text-gradient { @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent; }

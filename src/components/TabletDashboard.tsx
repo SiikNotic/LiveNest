@@ -23,7 +23,7 @@ const PANEL_LABEL_KEYS: Record<PanelId, TranslationKey> = {
 function Panel({ id, children }: { id: PanelId; children: React.ReactNode }) {
   const { t } = useI18n();
   return (
-    <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card overflow-hidden">
       <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-bg-soft">
         <span className="text-sm font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
       </div>

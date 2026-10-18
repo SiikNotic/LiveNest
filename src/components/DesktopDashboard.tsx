@@ -35,7 +35,7 @@ function Panel({ id, grow, children }: { id: PanelId; grow: number; children: Re
   return (
     <div
       style={{ flex: `${grow} 1 0` }}
-      className="min-w-0 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card backdrop-blur-xl overflow-hidden"
+      className="min-w-0 min-h-0 flex flex-col rounded-2xl border border-border bg-bg-card overflow-hidden"
     >
       <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-bg-soft">
         <span className="text-xs font-bold text-text-soft">{t(PANEL_LABEL_KEYS[id])}</span>
