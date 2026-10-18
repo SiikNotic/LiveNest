@@ -680,3 +680,70 @@ input[type="range"]::-moz-range-thumb {
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 9999px; background: var(--ln-obsidian);
 }
+
+/* Chip genérico (selector de idioma, etc.) — translúcido sobre el canvas,
+   blanco-sobre-oscuro en el sistema default, negro-sobre-claro en .ln-vital
+   (ver más abajo). Separado en su propia variable para no hardcodear el
+   rgba() dos veces en componentes que si o si cambian de polaridad. */
+.ln {
+  --ln-chip-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== Variante clara "Vital" — referencia: un mockup de landing de
+   fintech (tarjeta premium) que el usuario pidió explícitamente igualar
+   en estilo y gama de colores: canvas gris clarísimo casi blanco, un solo
+   acento de color (acá oro, nunca el lima literal de la referencia),
+   tarjetas blancas con sombra suave convencional en vez del "keyboard key"
+   de sombra interior (ese recurso era de la referencia Raycast, no pega
+   acá), botón de acción lleno en negro/casi-negro (igual que su "REQUEST
+   INVITE"). Mismo truco que .ln-btn-primary ya usaba: mist/iron son
+   tokens semánticos ("superficie llena" / "texto sobre superficie
+   llena"), así que simplemente invertirlos alcanza para que el mismo CSS
+   de componente (.ln-btn, .ln-key, .ln-badge, .ln-nav-pill) sirva para
+   las dos polaridades sin duplicar reglas. Se aplica agregando la clase
+   .ln-vital junto a .ln — nunca reemplaza a .ln (AuthView sigue usando
+   el .ln oscuro de siempre, sin tocarlo). */
+.ln.ln-vital {
+  --ln-canvas: #f4f5f7;
+  --ln-ink: #ffffff;
+  --ln-obsidian: #eef0f3;
+  --ln-graphite: #eceef1;
+  --ln-border: #e3e5e9;
+  --ln-smoke: #8a8d93;
+  --ln-ash: #55585f;
+  /* Invertidos: ahora la "superficie llena" es oscura (el botón negro de
+     la referencia) y su texto es claro. */
+  --ln-mist: #121214;
+  --ln-iron: #ffffff;
+  --ln-white: #121214;
+  /* Oro un poco más profundo que el de .ln oscuro — el original (#d89a16)
+     está calibrado para brillar sobre negro; sobre blanco necesita más
+     peso para no lavarse. */
+  --ln-gold: #b9810f;
+  --ln-gold-bright: #8a630c;
+  --ln-gold-tint: #faf0d8;
+  --ln-silver: #c7cad1;
+  --ln-silver-dim: #9a9ea7;
+  --ln-chip-bg: rgba(17, 17, 20, 0.05);
+}
+.ln.ln-vital ::selection { background: var(--ln-gold); color: #fff; }
+
+/* Elevación convencional (sombra debajo, no inset) — sobre blanco puro,
+   la receta "keyboard key" de arriba (altos de luz blancos semi-
+   transparentes) queda invisible blanco-sobre-blanco. */
+.ln.ln-vital .ln-key {
+  box-shadow: 0 1px 2px rgba(17, 17, 20, 0.04), 0 10px 28px rgba(17, 17, 20, 0.06);
+  border: 1px solid var(--ln-border);
+}
+.ln.ln-vital .ln-key-hover:hover {
+  background: var(--ln-ink);
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(17, 17, 20, 0.05), 0 20px 36px rgba(17, 17, 20, 0.09), rgba(185, 129, 15, 0.3) 0px 0px 0px 1px;
+}
+.ln.ln-vital .ln-nav-pill {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: var(--ln-border);
+  box-shadow: 0 1px 2px rgba(17, 17, 20, 0.04), 0 8px 24px rgba(17, 17, 20, 0.06);
+}
+.ln.ln-vital .ln-btn-primary:hover { background: #000; }
+.ln.ln-vital .ln-btn-ghost:hover { color: var(--ln-white); border-color: var(--ln-smoke); }

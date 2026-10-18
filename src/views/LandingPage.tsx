@@ -3,7 +3,7 @@ import { useI18n, type Lang, type TranslationKey } from "../lib/i18n";
 import { MEMBERSHIP_PRICE_LABEL } from "../lib/stripeConfig";
 import {
   Mic, Bell, Music, Shield, Globe, SlidersHorizontal,
-  Gift, Check, Download, Smartphone, ChevronDown, Radio,
+  Check, Download, Smartphone, ChevronDown,
 } from "lucide-react";
 
 // Página de bienvenida para quien todavía no inició sesión — antes se iba
@@ -12,13 +12,18 @@ import {
 // nativa de Android salta directo al login (ver App.tsx) — nadie necesita
 // que le vendan la app una vez que ya la instaló.
 //
-// v4: identidad fija propia en vez de seguir los 13 temas seleccionables
-// del resto de la app (ver el bloque ".ln" en index.css) — un sistema
-// "cockpit oscuro": canvas casi negro, un solo acento (oro), tarjetas con
-// sombra interior tipo "tecla de teclado" en vez de glassmorphism, botones
-// de acción neutros (nunca cromáticos). Referencia de estilo pedida por el
-// usuario, adaptada a la marca propia — nunca copiada literal (ni el
-// acento de color, ni el wordmark, ni las imágenes).
+// v5: identidad clara "Vital" — referencia de estilo que el usuario pidió
+// igualar explícitamente (un video de mockup de landing fintech: canvas
+// gris clarísimo, un solo acento de color, tarjetas blancas con sombra
+// suave convencional, botón lleno negro, mockup de producto flotando en
+// 3D). Adaptado a la marca propia — oro en vez del lima literal de la
+// referencia, mockup de browser con el dashboard real de LiveNest en vez
+// de una tarjeta de crédito, nunca copiado literal (ni el acento, ni el
+// wordmark, ni el contenido). Convive con el sistema .ln oscuro original
+// (ver .ln-vital en index.css: mismos nombres de token, invertidos) — la
+// pantalla de login (AuthView) sigue usando el .ln oscuro sin tocar.
+// El cierre (FinalCta) vuelve a ese oscuro a propósito, como contraste
+// final antes del footer — igual que hace la referencia.
 
 // Revela `children` con un fade-up cuando entran en el viewport (o de
 // inmediato, si el navegador no soporta IntersectionObserver — nunca se
@@ -61,11 +66,12 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
   };
 
   return (
-    <div className="ln min-h-screen overflow-x-clip">
+    <div className="ln ln-vital min-h-screen overflow-x-clip">
       <Nav onLaunch={onLaunch} lang={lang} setLang={setLang} scrollTo={scrollTo} />
       <Hero onLaunch={onLaunch} scrollTo={scrollTo} />
       <StatStrip />
       <Features />
+      <ThemesFan />
       <HowItWorks />
       <Pricing onLaunch={onLaunch} />
       <AndroidSection />
@@ -83,18 +89,18 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
         <div className="ln-nav-pill max-w-5xl mx-auto h-14 flex items-center justify-between gap-3 px-3 sm:px-5">
           <div className="flex items-center gap-2 shrink-0">
             <img src="/logo.png" alt="" className="w-8 h-8 rounded-lg" />
-            <span className="text-[13px] font-medium text-white">
+            <span className="text-[13px] font-medium" style={{ color: "var(--ln-white)" }}>
               Live<span style={{ color: "var(--ln-gold)" }}>Nest</span>
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-7 text-[13px] font-medium" style={{ color: "var(--ln-ash)" }}>
-            <button onClick={() => scrollTo("features")} className="hover:text-white transition-colors">{t("landing_nav_features")}</button>
-            <button onClick={() => scrollTo("how")} className="hover:text-white transition-colors">{t("landing_nav_how")}</button>
-            <button onClick={() => scrollTo("pricing")} className="hover:text-white transition-colors">{t("landing_nav_pricing")}</button>
-            <button onClick={() => scrollTo("faq")} className="hover:text-white transition-colors">{t("landing_nav_faq")}</button>
+            <button onClick={() => scrollTo("features")} className="hover:opacity-100 transition-opacity" style={{ color: "inherit" }}>{t("landing_nav_features")}</button>
+            <button onClick={() => scrollTo("how")} className="hover:opacity-100 transition-opacity">{t("landing_nav_how")}</button>
+            <button onClick={() => scrollTo("pricing")} className="hover:opacity-100 transition-opacity">{t("landing_nav_pricing")}</button>
+            <button onClick={() => scrollTo("faq")} className="hover:opacity-100 transition-opacity">{t("landing_nav_faq")}</button>
           </nav>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:inline-flex rounded-lg p-0.5 gap-0.5" style={{ background: "rgba(255,255,255,0.05)" }}>
+            <div className="hidden sm:inline-flex rounded-lg p-0.5 gap-0.5" style={{ background: "var(--ln-chip-bg)" }}>
               {(["es", "en"] as Lang[]).map((l) => (
                 <button
                   key={l}
@@ -117,21 +123,15 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     return (
       <section className="relative border-b overflow-hidden" style={{ borderColor: "var(--ln-border)" }}>
         {/* Composición atmosférica — el único lugar del sistema donde el
-            oro/plata se cranquean al máximo (blur, escala, saturación)
-            antes de que la página vuelva a la austeridad de abajo. */}
+            oro se cranquea al máximo (blur, escala) antes de que la
+            página vuelva a la austeridad de abajo. */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden>
           <div
             className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full"
             style={{
-              background: "radial-gradient(circle, rgba(216,154,22,0.22), transparent 60%)",
+              background: "radial-gradient(circle, rgba(185,129,15,0.14), transparent 60%)",
               filter: "blur(40px)",
             }}
-          />
-          <img
-            src="/onboarding/start.png"
-            alt=""
-            className="absolute -top-24 right-[-180px] w-[640px] max-w-none opacity-40 animate-float"
-            style={{ animationDuration: "8s" }}
           />
         </div>
 
@@ -141,13 +141,16 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
               <span className="ln-badge ln-badge-gold mb-6">LiveNest</span>
             </Reveal>
             <Reveal delay={80}>
-              <h1
-                className="text-[42px] sm:text-[56px] font-normal leading-[1.08] text-white"
-                style={{ letterSpacing: "0.22px" }}
-              >
-                <span className="block">{t("landing_hero_title_1")}</span>
-                {t("landing_hero_title_2") && <span className="block">{t("landing_hero_title_2")}</span>}
-                <span className="block" style={{ color: "var(--ln-gold)" }}>{t("landing_hero_title_3")}</span>
+              {/* Contraste de peso tipográfico (línea 1 marcada, línea 2
+                  liviana y más clara) — el mismo truco que usa la
+                  referencia para separar el titular del subtitular sin
+                  cambiar de tamaño de fuente. */}
+              <h1 className="text-[42px] sm:text-[56px] leading-[1.08]" style={{ letterSpacing: "0.22px" }}>
+                <span className="block font-semibold" style={{ color: "var(--ln-white)" }}>{t("landing_hero_title_1")}</span>
+                {t("landing_hero_title_2") && (
+                  <span className="block font-normal" style={{ color: "var(--ln-ash)" }}>{t("landing_hero_title_2")}</span>
+                )}
+                <span className="block font-semibold" style={{ color: "var(--ln-gold)" }}>{t("landing_hero_title_3")}</span>
               </h1>
             </Reveal>
             <Reveal delay={160}>
@@ -173,94 +176,98 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
             </Reveal>
           </div>
           <Reveal delay={160}>
-            <HeroMock />
+            <BrowserMock />
           </Reveal>
         </div>
       </section>
     );
   }
 
-  // Marco de teléfono en vez de una tarjeta abstracta — TikTok Live es un
-  // producto de celular, y mostrarlo así se lee como una demo real del
-  // producto, no como un elemento decorativo genérico de landing page.
-  function HeroMock() {
+  // Mockup de navegador con el dashboard real de LiveNest adentro,
+  // flotando en 3D con sombra suave — es la pieza central de la
+  // referencia (un "producto" presentado como mockup de 3D, no una
+  // ilustración genérica). LiveNest es, antes que nada, un producto web
+  // (livenest.net), así que mostrarlo como ventana de navegador es más
+  // honesto que forzar la metáfora de "tarjeta" de la referencia.
+  function BrowserMock() {
     const chatLines = [
       { name: "maria_23", msg: "Hola! Saludos desde México 🇲🇽" },
       { name: "andree21", msg: "Great stream! 🔥" },
       { name: "lucas99", msg: "Me encanta este contenido" },
     ];
-    const alert = { icon: Gift, labelKey: "landing_mock_alert_gift" as const };
-    // Barras de una "onda de voz" — sugieren que algo se está leyendo en voz
-    // alta ahora mismo. Cada una pulsa con su propio retraso/duración para
-    // que se vea como un ecualizador real, no una animación sincronizada.
-    const waveBars = [
-      { delay: 0, duration: 1.0 }, { delay: 0.12, duration: 0.9 }, { delay: 0.24, duration: 1.15 },
-      { delay: 0.06, duration: 0.8 }, { delay: 0.3, duration: 1.05 }, { delay: 0.18, duration: 0.95 },
-      { delay: 0.36, duration: 1.1 }, { delay: 0.1, duration: 0.85 },
-    ];
+    // Anillo de progreso con el tiempo de transmisión — un dato real que
+    // el dashboard sí muestra (duración de la sesión en vivo), no una
+    // métrica de negocio inventada.
+    const radius = 27;
+    const circumference = 2 * Math.PI * radius;
+    const progress = 0.62;
+
     return (
       <div className="flex justify-center lg:justify-end">
-        <div className="relative w-[300px] animate-float">
+        <div className="relative w-full max-w-[460px] animate-float" style={{ animationDuration: "7s" }}>
           <div
-            className="relative rounded-[2.5rem] border-[6px] shadow-2xl overflow-hidden"
-            style={{ borderColor: "var(--ln-border)", background: "#000" }}
+            className="rounded-2xl border overflow-hidden"
+            style={{
+              borderColor: "var(--ln-border)",
+              background: "var(--ln-ink)",
+              boxShadow: "0 2px 8px rgba(17,17,20,0.06), 0 48px 90px -24px rgba(17,17,20,0.3)",
+              transform: "perspective(1600px) rotateY(-7deg) rotateX(3deg)",
+            }}
           >
-            {/* Cámara frontal — un punto, no una muesca que compita con la
-                barra de estado de abajo */}
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-black ring-1 ring-white/10 z-20" />
-            {/* Botones laterales */}
-            <div className="absolute -right-[6px] top-24 w-[6px] h-10 rounded-r" style={{ background: "var(--ln-border)" }} />
-            <div className="absolute -left-[6px] top-20 w-[6px] h-6 rounded-l" style={{ background: "var(--ln-border)" }} />
-            <div className="absolute -left-[6px] top-32 w-[6px] h-10 rounded-l" style={{ background: "var(--ln-border)" }} />
+            {/* Barra de navegador falsa — semáforo de macOS + pill de URL,
+                refuerza que esto es "la web real", igual que la
+                referencia. */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "var(--ln-border)" }}>
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#ff5f57" }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#febc2e" }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#28c840" }} />
+              <div className="flex-1 flex justify-center">
+                <span className="text-[11px] px-3 py-1 rounded-full" style={{ background: "var(--ln-graphite)", color: "var(--ln-smoke)" }}>
+                  livenest.net
+                </span>
+              </div>
+            </div>
 
-            <div className="relative aspect-[9/17.5] flex flex-col" style={{ background: "linear-gradient(to bottom, var(--ln-ink), #000)" }}>
-              <div className="h-1" style={{ background: "linear-gradient(to right, var(--ln-gold), var(--ln-silver), var(--ln-gold))" }} />
-
-              <div className="flex items-center justify-between px-3.5 pt-4">
-                <div className="flex items-center gap-1.5 bg-black/40 rounded-full pl-2 pr-2.5 py-1">
+            <div className="p-5">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <img src="/logo.png" alt="" className="w-7 h-7 rounded-lg" />
+                  <span className="text-sm font-semibold" style={{ color: "var(--ln-white)" }}>LiveNest</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-soft" />
-                  <span className="text-[9px] font-extrabold tracking-wide text-white">{t("landing_mock_status")}</span>
+                  <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">{t("landing_mock_status")}</span>
                 </div>
-                <Radio className="w-3.5 h-3.5 text-white/50" />
               </div>
 
-              {/* Espacio del video — marca de agua sutil en vez de dejarlo
-                  vacío o fingir una captura de video real */}
-              <div className="flex-1 flex items-center justify-center">
-                <img src="/logo.png" alt="" className="w-16 h-16 rounded-2xl opacity-10" />
+              <div className="flex items-center gap-4 mb-5 pb-5 border-b" style={{ borderColor: "var(--ln-border)" }}>
+                <svg width="64" height="64" viewBox="0 0 64 64" className="flex-shrink-0">
+                  <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--ln-border)" strokeWidth="5" />
+                  <circle
+                    cx="32" cy="32" r={radius} fill="none" stroke="var(--ln-gold)" strokeWidth="5"
+                    strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)}
+                    strokeLinecap="round" transform="rotate(-90 32 32)"
+                  />
+                </svg>
+                <div>
+                  <p className="text-xl font-semibold tabular-nums" style={{ color: "var(--ln-white)" }}>00:42:18</p>
+                  <p className="text-xs" style={{ color: "var(--ln-smoke)" }}>{t("landing_mock_live_duration")}</p>
+                </div>
               </div>
 
-              {/* Toast de alerta, como aparecería de verdad sobre el stream */}
-              <div className="mx-3.5 mb-2.5 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-2.5 py-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--ln-gold-tint)" }}>
-                  <alert.icon className="w-3.5 h-3.5" style={{ color: "var(--ln-gold-bright)" }} />
-                </div>
-                <div className="leading-tight min-w-0 flex-1">
-                  <p className="text-[11px] font-bold truncate text-white">{t(alert.labelKey)}</p>
-                  <p className="text-[9px]" style={{ color: "var(--ln-smoke)" }}>{t("landing_mock_alerts_title")}</p>
-                </div>
-                <div className="flex items-end gap-[2px] h-4 flex-shrink-0">
-                  {waveBars.map((bar, i) => (
+              <div className="space-y-2">
+                {chatLines.map((c) => (
+                  <div key={c.name} className="flex items-center gap-2 text-xs rounded-lg px-2.5 py-2" style={{ background: "var(--ln-obsidian)" }}>
                     <span
-                      key={i}
-                      className="w-[2px] h-4 rounded-full origin-bottom animate-wave-bar"
-                      style={{ background: "var(--ln-gold)", opacity: 0.8, animationDelay: `${bar.delay}s`, animationDuration: `${bar.duration}s` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Panel de chat, pegado abajo como un overlay real */}
-              <div className="mx-3.5 mb-4 bg-black/40 rounded-xl px-2.5 py-2.5">
-                <p className="text-[8px] font-bold text-white/50 uppercase tracking-wide mb-1.5">{t("landing_mock_chat_title")}</p>
-                <div className="space-y-1">
-                  {chatLines.map((c) => (
-                    <div key={c.name} className="text-[10.5px] leading-snug">
-                      <span className="font-bold" style={{ color: "var(--ln-gold-bright)" }}>@{c.name}</span>{" "}
-                      <span className="text-white/80">{c.msg}</span>
-                    </div>
-                  ))}
-                </div>
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                      style={{ background: "var(--ln-gold-tint)", color: "var(--ln-gold-bright)" }}
+                    >
+                      {c.name[0].toUpperCase()}
+                    </span>
+                    <span className="font-semibold flex-shrink-0" style={{ color: "var(--ln-white)" }}>@{c.name}</span>
+                    <span className="truncate" style={{ color: "var(--ln-ash)" }}>{c.msg}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -281,7 +288,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-7 grid grid-cols-2 sm:grid-cols-4 divide-x divide-[var(--ln-border)]">
           {stats.map(([n, label], i) => (
             <Reveal key={label} delay={i * 80} className="px-4 first:pl-0 text-center sm:text-left">
-              <p className="text-2xl sm:text-3xl font-semibold text-white">{n}</p>
+              <p className="text-2xl sm:text-3xl font-semibold" style={{ color: "var(--ln-white)" }}>{n}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--ln-smoke)" }}>{label}</p>
             </Reveal>
           ))}
@@ -303,7 +310,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
       <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28 scroll-mt-20">
         <div className="max-w-lg mb-16">
           <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--ln-gold)" }}>{t("landing_nav_features")}</span>
-          <h2 className="mt-3 text-[32px] font-semibold tracking-tight text-white">{t("landing_features_title")}</h2>
+          <h2 className="mt-3 text-[32px] font-semibold tracking-tight" style={{ color: "var(--ln-white)" }}>{t("landing_features_title")}</h2>
           <p className="mt-4 text-base" style={{ color: "var(--ln-ash)" }}>{t("landing_features_subtitle")}</p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -315,10 +322,69 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
                 </div>
                 <span className="text-[11px] font-bold" style={{ color: "var(--ln-smoke)", fontFamily: "var(--font-geist-mono)" }}>0{i + 1}</span>
               </div>
-              <h3 className="text-sm font-semibold mb-1.5 text-white">{t(f.titleKey)}</h3>
+              <h3 className="text-sm font-semibold mb-1.5" style={{ color: "var(--ln-white)" }}>{t(f.titleKey)}</h3>
               <p className="text-xs leading-relaxed" style={{ color: "var(--ln-ash)" }}>{t(f.descKey)}</p>
             </Reveal>
           ))}
+        </div>
+      </section>
+    );
+  }
+
+  // Stack de temas en abanico — equivalente propio del "fan de tarjetas
+  // en distintos acabados" de la referencia, pero con contenido real: los
+  // 13 temas seleccionables de la app (mismos --c-primary que index.css),
+  // no un producto inventado.
+  function ThemesFan() {
+    const featured = [
+      { name: "Ocean", color: "#0ea5e9" },
+      { name: "Forest", color: "#10b981" },
+      { name: "Gold", color: "#d89a16" },
+      { name: "Candy", color: "#ec4899" },
+      { name: "iOS", color: "#007aff" },
+    ];
+    const rotations = [-16, -8, 0, 8, 16];
+    // Desplazamiento horizontal por carta además de la rotación — sin esto,
+    // una rotación sola alrededor del centro no alcanza a destrabar cartas
+    // del mismo tamaño de atrás del todo de la de adelante, y el abanico
+    // se ve como una sola carta con apenas un filo de las demás asomando.
+    const offsets = [-108, -54, 0, 54, 108];
+    const rest = ["#06b6d4", "#e5e5e5", "#d946ef", "#d0bcff", "#a855f7", "#fb923c", "#8b5cf6", "#ef4444"];
+
+    return (
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28 overflow-hidden">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <Reveal>
+            <span className="ln-badge ln-badge-gold mb-6">{t("landing_themes_badge")}</span>
+            <h2 className="text-[32px] font-semibold tracking-tight" style={{ color: "var(--ln-white)" }}>{t("landing_themes_title")}</h2>
+            <p className="mt-4 text-base max-w-md" style={{ color: "var(--ln-ash)" }}>{t("landing_themes_subtitle")}</p>
+            <div className="mt-7 flex items-center gap-1.5 flex-wrap max-w-xs">
+              {rest.map((c) => (
+                <span key={c} className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c }} />
+              ))}
+              <span className="text-xs ml-1" style={{ color: "var(--ln-smoke)" }}>+8</span>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="relative h-[300px] flex items-center justify-center" style={{ perspective: 1200 }}>
+              {featured.map((f, i) => (
+                <div
+                  key={f.name}
+                  className="absolute top-1/2 left-1/2 w-[120px] h-[170px] rounded-2xl border flex flex-col justify-between p-3.5"
+                  style={{
+                    background: `linear-gradient(160deg, ${f.color}, ${f.color}cc)`,
+                    borderColor: "rgba(255,255,255,0.3)",
+                    transform: `translate(-50%, -50%) translateX(${offsets[i]}px) translateY(${Math.abs(rotations[i]) * 1.1}px) rotate(${rotations[i]}deg)`,
+                    boxShadow: "0 24px 48px -16px rgba(17,17,20,0.3)",
+                    zIndex: 10 - Math.abs(rotations[i]),
+                  }}
+                >
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "rgba(255,255,255,0.3)" }} />
+                  <span className="text-[11px] font-bold text-white">{f.name}</span>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
     );
@@ -333,12 +399,12 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     return (
       <section id="how" className="border-y scroll-mt-20" style={{ borderColor: "var(--ln-border)", background: "var(--ln-ink)" }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28">
-          <h2 className="text-[32px] font-semibold tracking-tight text-center mb-16 text-white">{t("landing_how_title")}</h2>
+          <h2 className="text-[32px] font-semibold tracking-tight text-center mb-16" style={{ color: "var(--ln-white)" }}>{t("landing_how_title")}</h2>
           <div className="grid sm:grid-cols-3 gap-8">
             {steps.map((s, i) => (
               <Reveal key={s.titleKey} delay={i * 120} className="text-center sm:text-left">
                 <p className="text-4xl font-semibold mb-3" style={{ color: "var(--ln-gold)", opacity: 0.35, fontFamily: "var(--font-geist-mono)" }}>0{i + 1}</p>
-                <h3 className="text-sm font-semibold mb-1.5 text-white">{t(s.titleKey)}</h3>
+                <h3 className="text-sm font-semibold mb-1.5" style={{ color: "var(--ln-white)" }}>{t(s.titleKey)}</h3>
                 <p className="text-xs leading-relaxed" style={{ color: "var(--ln-ash)" }}>{t(s.descKey)}</p>
               </Reveal>
             ))}
@@ -354,13 +420,13 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     return (
       <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 py-24 sm:py-28 scroll-mt-20">
         <div className="text-center max-w-lg mx-auto mb-16">
-          <h2 className="text-[32px] font-semibold tracking-tight text-white">{t("landing_pricing_title")}</h2>
+          <h2 className="text-[32px] font-semibold tracking-tight" style={{ color: "var(--ln-white)" }}>{t("landing_pricing_title")}</h2>
           <p className="mt-4 text-base" style={{ color: "var(--ln-ash)" }}>{t("landing_pricing_subtitle")}</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <Reveal className="ln-key p-6">
             <h3 className="text-sm font-semibold" style={{ color: "var(--ln-ash)" }}>{t("landing_pricing_free_title")}</h3>
-            <p className="text-4xl font-semibold mt-2 text-white">{t("landing_pricing_free_price")}</p>
+            <p className="text-4xl font-semibold mt-2" style={{ color: "var(--ln-white)" }}>{t("landing_pricing_free_price")}</p>
             <p className="text-xs mb-5" style={{ color: "var(--ln-smoke)" }}>{t("landing_pricing_free_desc")}</p>
             <ul className="space-y-2.5 mb-6">
               {freeItems.map((k) => (
@@ -374,11 +440,11 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
           <Reveal
             delay={120}
             className="ln-key p-6 relative"
-            style={{ boxShadow: "rgba(255,255,255,0.05) 0px 1px 0px 0px inset, rgba(216,154,22,0.4) 0px 0px 0px 1px, rgba(0,0,0,0.3) 0px -1px 0px 0px inset" }}
+            style={{ boxShadow: "0 1px 2px rgba(17,17,20,0.04), 0 20px 40px rgba(17,17,20,0.08), rgba(185,129,15,0.5) 0px 0px 0px 1.5px" }}
           >
             <span className="ln-badge ln-badge-gold absolute -top-3 left-5">{t("landing_pricing_premium_badge")}</span>
             <h3 className="text-sm font-semibold" style={{ color: "var(--ln-ash)" }}>{t("landing_pricing_premium_title")}</h3>
-            <p className="text-4xl font-semibold mt-2 text-white">
+            <p className="text-4xl font-semibold mt-2" style={{ color: "var(--ln-white)" }}>
               {MEMBERSHIP_PRICE_LABEL.split(" / ")[0]}
               <span className="text-sm font-medium" style={{ color: "var(--ln-smoke)" }}> {t("landing_pricing_period")}</span>
             </p>
@@ -403,7 +469,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 grid md:grid-cols-[1fr_auto] gap-8 items-center">
           <div>
             <span className="ln-badge mb-3">{t("landing_android_badge")}</span>
-            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2 text-white">
+            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight flex items-center gap-2" style={{ color: "var(--ln-white)" }}>
               <Smartphone className="w-5 h-5" style={{ color: "var(--ln-gold)" }} /> {t("landing_android_title")}
             </h2>
             <p className="mt-2 text-sm max-w-lg" style={{ color: "var(--ln-ash)" }}>{t("landing_android_desc")}</p>
@@ -433,7 +499,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     const [open, setOpen] = useState<string | null>(items[0][0]);
     return (
       <section id="faq" className="max-w-3xl mx-auto px-4 sm:px-6 py-24 sm:py-28 scroll-mt-20">
-        <h2 className="text-[32px] font-semibold tracking-tight text-center mb-12 text-white">{t("landing_faq_title")}</h2>
+        <h2 className="text-[32px] font-semibold tracking-tight text-center mb-12" style={{ color: "var(--ln-white)" }}>{t("landing_faq_title")}</h2>
         <div className="space-y-3">
           {items.map(([qKey, aKey], i) => {
             const isOpen = open === qKey;
@@ -441,7 +507,7 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
               <Reveal key={qKey} delay={i * 60}>
                 <div className="ln-key ln-key-hover p-6 cursor-pointer" onClick={() => setOpen(isOpen ? null : qKey)}>
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-white">{t(qKey)}</h3>
+                    <h3 className="text-sm font-semibold" style={{ color: "var(--ln-white)" }}>{t(qKey)}</h3>
                     <ChevronDown
                       className={`w-4 h-4 flex-shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
                       style={{ color: "var(--ln-smoke)" }}
@@ -461,20 +527,26 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
     );
   }
 
+  // Cierre oscuro de contraste — como hace la referencia (termina en un
+  // panel oscuro antes del footer claro). En vez de inventar colores
+  // nuevos, reaparece acá el sistema .ln oscuro original (anidado: la
+  // misma clase .ln redeclara sus variables, pisando a .ln-vital solo
+  // para este subárbol), así .ln-key/.ln-badge/.ln-btn-primary quedan
+  // gratis sin duplicar ningún valor hexadecimal nuevo.
   function FinalCta({ onLaunch }: { onLaunch: () => void }) {
     return (
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-        <Reveal className="ln-key px-6 py-14 sm:px-14 sm:py-16 relative flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden">
-          <div className="absolute top-0 left-0 w-1.5 h-full" style={{ background: "linear-gradient(to bottom, var(--ln-gold), var(--ln-silver))" }} />
-          <div className="relative text-center sm:text-left">
-            <h2 className="text-[32px] font-semibold tracking-tight text-white">{t("landing_final_title")}</h2>
-            <p className="text-sm mt-2 max-w-md" style={{ color: "var(--ln-ash)" }}>{t("landing_final_subtitle")}</p>
-          </div>
-          <button onClick={onLaunch} className="ln-btn ln-btn-primary px-7 py-3 text-sm whitespace-nowrap">
-            {t("landing_final_cta")}
-          </button>
-        </Reveal>
-      </section>
+      <div className="ln">
+        <section className="py-16 sm:py-20" style={{ background: "var(--ln-canvas)" }}>
+          <Reveal className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+            <span className="ln-badge ln-badge-gold mb-5">LiveNest</span>
+            <h2 className="text-[32px] sm:text-[40px] font-semibold tracking-tight" style={{ color: "var(--ln-white)" }}>{t("landing_final_title")}</h2>
+            <p className="text-sm mt-3 max-w-md mx-auto" style={{ color: "var(--ln-ash)" }}>{t("landing_final_subtitle")}</p>
+            <button onClick={onLaunch} className="ln-btn ln-btn-primary mt-8 px-7 py-3 text-sm">
+              {t("landing_final_cta")}
+            </button>
+          </Reveal>
+        </section>
+      </div>
     );
   }
 
@@ -485,20 +557,20 @@ export function LandingPage({ onLaunch }: { onLaunch: () => void }) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <img src="/logo.png" alt="" className="w-7 h-7 rounded-lg" />
-              <span className="text-sm font-medium text-white">Live<span style={{ color: "var(--ln-gold)" }}>Nest</span></span>
+              <span className="text-sm font-medium" style={{ color: "var(--ln-white)" }}>Live<span style={{ color: "var(--ln-gold)" }}>Nest</span></span>
             </div>
             <p className="text-xs max-w-xs" style={{ color: "var(--ln-smoke)" }}>{t("landing_footer_tagline")}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--ln-smoke)" }}>{t("landing_footer_legal")}</p>
             <div className="flex flex-col gap-1.5 text-xs" style={{ color: "var(--ln-ash)" }}>
-              <a href="/terms.html" className="hover:text-white transition-colors">{t("landing_footer_terms")}</a>
-              <a href="/privacy.html" className="hover:text-white transition-colors">{t("landing_footer_privacy")}</a>
+              <a href="/terms.html" className="hover:opacity-70 transition-opacity">{t("landing_footer_terms")}</a>
+              <a href="/privacy.html" className="hover:opacity-70 transition-opacity">{t("landing_footer_privacy")}</a>
             </div>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--ln-smoke)" }}>{t("landing_footer_contact")}</p>
-            <a href="mailto:livenestapp@gmail.com" className="text-xs hover:text-white transition-colors" style={{ color: "var(--ln-ash)" }}>
+            <a href="mailto:livenestapp@gmail.com" className="text-xs hover:opacity-70 transition-opacity" style={{ color: "var(--ln-ash)" }}>
               livenestapp@gmail.com
             </a>
           </div>
