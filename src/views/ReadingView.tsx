@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useStore } from "../lib/store";
-import { useI18n } from "../lib/i18n";
+import { useI18n, type TranslationKey } from "../lib/i18n";
 import { supabase, type FilterRule, type Template, type Settings } from "../lib/supabase";
 import {
   Plus, Trash2, Filter as FilterIcon, Shield, LayoutTemplate, Check, Edit2, X,
   Gift, UserPlus, Heart, Share2, Crown, RotateCcw, SlidersHorizontal, Link as LinkIcon, Hash, ChevronDown,
+  Bell, MessageSquare,
 } from "lucide-react";
+type TFunc = (key: TranslationKey, vars?: Record<string, string | number>) => string;
 
 // Fusiona lo que antes eran tres secciones separadas (Filtros, Plantillas,
 // y las frases fijas de las alertas por voz que ni se podían tocar) en
@@ -15,32 +17,59 @@ import {
 export function ReadingView() {
   const { t } = useI18n();
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="card flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <SlidersHorizontal className="w-5 h-5 text-primary" />
+    <>
+      {/* ============== MOBILE (<md) — sin tocar, igual que siempre ============== */}
+      <div className="md:hidden space-y-5 animate-fade-in">
+        <div className="card flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <SlidersHorizontal className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold">{t("reading_title")}</h1>
+            <p className="text-xs text-muted">{t("reading_subtitle")}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-sm font-bold">{t("reading_title")}</h1>
-          <p className="text-xs text-muted">{t("reading_subtitle")}</p>
-        </div>
+
+        <section className="space-y-3">
+          <SectionTitle icon={Shield} labelKey="reading_section_filters" />
+          <FiltersSection />
+        </section>
+
+        <section className="space-y-3">
+          <SectionTitle icon={LayoutTemplate} labelKey="reading_section_chat" />
+          <ChatTemplateSection />
+        </section>
+
+        <section className="space-y-3">
+          <SectionTitle icon={Gift} labelKey="reading_section_alerts" />
+          <AlertPhrasesSection />
+        </section>
       </div>
 
-      <section className="space-y-3">
-        <SectionTitle icon={Shield} labelKey="reading_section_filters" />
-        <FiltersSection />
-      </section>
+      {/* ============== DESKTOP / TABLET (md+) — rediseño ============== */}
+      <div className="hidden md:block space-y-4">
+        <div className="card relative overflow-hidden p-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+          <div className="relative p-5 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-primary/15 flex items-center justify-center glow-primary flex-shrink-0">
+              <SlidersHorizontal className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold">{t("reading_title")}</h2>
+              <p className="text-xs text-muted">{t("reading_subtitle")}</p>
+            </div>
+          </div>
+        </div>
 
-      <section className="space-y-3">
-        <SectionTitle icon={LayoutTemplate} labelKey="reading_section_chat" />
-        <ChatTemplateSection />
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle icon={Gift} labelKey="reading_section_alerts" />
-        <AlertPhrasesSection />
-      </section>
-    </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[54fr_46fr] gap-4 items-start">
+          <div className="space-y-4 min-w-0">
+            <DesktopFiltersPanel t={t} />
+            <DesktopChatTemplatePanel t={t} />
+          </div>
+          <DesktopAlertPhrasesPanel t={t} />
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -69,6 +98,18 @@ function SectionTitle({ icon: Icon, labelKey }: { icon: typeof Shield; labelKey:
 // no se pueden crear nuevas desde acá.
 // ============================================================
 
+// Resalta las variables "{xxx}" de un texto de ayuda con el acento cian —
+// mismo texto real de siempre, solo cambia cómo se pinta cada tramo.
+function highlightVars(text: string): ReactNode {
+  return text.split(/(\{[^}]+\})/g).map((part, i) =>
+    /^\{[^}]+\}$/.test(part) ? (
+      <span key={i} className="text-primary font-mono font-semibold">{part}</span>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 // Links que suelen aparecer como spam en el chat de un directo — no son
 // palabras ofensivas (eso depende demasiado del streamer y del idioma
 // para adivinarlo bien), pero estos dominios sí son un problema bastante
@@ -82,15 +123,16 @@ function looksLikeLink(value: string): boolean {
   return /^(https?:\/\/|www\.)/i.test(value) || /\.[a-z]{2,}(\/|$)/i.test(value);
 }
 
-function FiltersSection() {
+// Estado y operaciones compartidos entre la versión mobile (FiltersSection,
+// sin tocar) y la de escritorio (DesktopFiltersPanel, más abajo) — un solo
+// hook, cero lógica duplicada. Cada variante tiene su propio "expanded"
+// local (independiente), lo cual no genera ningún conflicto real porque
+// solo una de las dos está visible a la vez según el breakpoint.
+function useFiltersSectionState() {
   const filters = useStore((s) => s.filters);
   const loadFilters = useStore((s) => s.loadFilters);
   const settings = useStore((s) => s.settings);
   const saveSettings = useStore((s) => s.saveSettings);
-  const { t } = useI18n();
-  // La lista arranca cerrada — con varias palabras/links bloqueados,
-  // mostrarlos siempre todos hacía que la pantalla fuera kilométrica. Se
-  // despliega solo al tocar el resumen de abajo.
   const [expanded, setExpanded] = useState(false);
 
   const deleteFilter = async (id: string) => {
@@ -112,6 +154,13 @@ function FiltersSection() {
     );
     loadFilters();
   };
+
+  return { filters, settings, saveSettings, expanded, setExpanded, deleteFilter, addBlock, addDefaults };
+}
+
+function FiltersSection() {
+  const { filters, settings, saveSettings, expanded, setExpanded, deleteFilter, addBlock, addDefaults } = useFiltersSectionState();
+  const { t } = useI18n();
 
   return (
     <div className="space-y-3">
@@ -266,10 +315,9 @@ function FilterRow({ filter, onDelete }: { filter: FilterRule; onDelete: () => v
 // Cómo lee el chat (antes TemplatesView.tsx)
 // ============================================================
 
-function ChatTemplateSection() {
+function useChatTemplateState() {
   const templates = useStore((s) => s.templates);
   const loadTemplates = useStore((s) => s.loadTemplates);
-  const { t } = useI18n();
   const [editing, setEditing] = useState<Template | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -296,6 +344,13 @@ function ChatTemplateSection() {
     setShowForm(false);
     loadTemplates();
   };
+
+  return { templates, editing, setEditing, showForm, setShowForm, setEnabled, deleteTemplate, saveTemplate };
+}
+
+function ChatTemplateSection() {
+  const { templates, editing, setEditing, showForm, setShowForm, setEnabled, deleteTemplate, saveTemplate } = useChatTemplateState();
+  const { t } = useI18n();
 
   return (
     <div className="space-y-3">
@@ -408,14 +463,18 @@ type AlertFieldKey =
   | "voice_alert_gift_single" | "voice_alert_gift_multi" | "voice_alert_follow"
   | "voice_alert_like_single" | "voice_alert_like_multi" | "voice_alert_share" | "voice_alert_sub";
 
-function AlertPhrasesSection() {
+function useAlertPhrasesState() {
   const settings = useStore((s) => s.settings);
   const saveSettings = useStore((s) => s.saveSettings);
+  const set = (key: AlertFieldKey, value: string) => saveSettings({ [key]: value || null } as Partial<Settings>);
+  return { settings, set };
+}
+
+function AlertPhrasesSection() {
+  const { settings, set } = useAlertPhrasesState();
   const { t } = useI18n();
 
   if (!settings) return <div className="card animate-pulse h-48" />;
-
-  const set = (key: AlertFieldKey, value: string) => saveSettings({ [key]: value || null } as Partial<Settings>);
 
   return (
     <div className="card space-y-4">
@@ -533,6 +592,242 @@ function AlertField({ value, onChange, placeholder, varsHintKey, presetLabel }: 
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Variante de escritorio/tablet (md+) — mismos hooks/estado que las
+// secciones de arriba (useFiltersSectionState/useChatTemplateState/
+// useAlertPhrasesState), solo cambia cómo se agrupa y se pinta.
+// ============================================================
+
+function DesktopFiltersPanel({ t }: { t: TFunc }) {
+  const { filters, settings, saveSettings, expanded, setExpanded, deleteFilter, addBlock, addDefaults } = useFiltersSectionState();
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+          <Shield className="w-4 h-4 text-primary" />
+        </div>
+        <h3 className="text-sm font-bold">{t("reading_section_filters")}</h3>
+      </div>
+
+      {settings && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("filters_min_chars")}</label>
+            <input
+              type="number"
+              min={0}
+              value={settings.min_message_length}
+              onChange={(e) => saveSettings({ min_message_length: parseInt(e.target.value) || 0 })}
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="label">{t("filters_max_chars")}</label>
+            <input
+              type="number"
+              min={1}
+              value={settings.max_message_length}
+              onChange={(e) => saveSettings({ max_message_length: parseInt(e.target.value) || 200 })}
+              className="input"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="pt-3 border-t border-border space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <LinkIcon className="w-4 h-4 text-accent flex-shrink-0" />
+            <h4 className="text-xs font-bold text-text-soft truncate">{t("filters_rules", { n: filters.length })}</h4>
+          </div>
+          {filters.length > 0 && (
+            <button onClick={addDefaults} className="text-[11px] font-semibold text-muted hover:text-text transition-colors flex-shrink-0">
+              {t("filters_add_defaults")}
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-muted">{t("filters_help")}</p>
+        <BlockAddForm onAdd={addBlock} />
+
+        {filters.length === 0 ? (
+          <div className="text-center py-6">
+            <FilterIcon className="w-6 h-6 text-muted mx-auto mb-2" />
+            <p className="text-sm text-muted">{t("filters_no_rules")}</p>
+          </div>
+        ) : (
+          <div>
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              className="w-full flex items-center justify-between gap-2 py-1 text-text-soft"
+            >
+              <span className="text-xs font-semibold">{t("filters_view_list", { n: filters.length })}</span>
+              <ChevronDown className={`w-4 h-4 text-muted transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+            </button>
+            {expanded && (
+              <div className="space-y-2 mt-2 animate-slide-down">
+                {filters.map((f) => (
+                  <FilterRow key={f.id} filter={f} onDelete={() => deleteFilter(f.id)} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DesktopChatTemplatePanel({ t }: { t: TFunc }) {
+  const { templates, editing, setEditing, showForm, setShowForm, setEnabled, deleteTemplate, saveTemplate } = useChatTemplateState();
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+          <MessageSquare className="w-4 h-4 text-primary" />
+        </div>
+        <h3 className="text-sm font-bold">{t("reading_section_chat")}</h3>
+      </div>
+      <p className="text-xs text-muted">{highlightVars(t("templates_help"))}</p>
+
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-muted">{t("templates_count", { n: templates.length })}</h4>
+        <button onClick={() => { setShowForm(true); setEditing(null); }} className="btn-primary text-xs">
+          <Plus className="w-3.5 h-3.5" /> {t("templates_new")}
+        </button>
+      </div>
+
+      {(showForm || editing) && (
+        <TemplateForm template={editing} onSave={saveTemplate} onCancel={() => { setShowForm(false); setEditing(null); }} />
+      )}
+
+      {templates.length === 0 ? (
+        <div className="text-center py-6">
+          <LayoutTemplate className="w-6 h-6 text-muted mx-auto mb-2" />
+          <p className="text-sm text-muted">{t("templates_no_templates")}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((tmpl) => (
+            <div
+              key={tmpl.id}
+              className={`rounded-xl border p-3.5 flex items-start gap-3 transition-colors ${
+                tmpl.enabled ? "border-primary/40 bg-primary/5" : "border-border bg-bg-soft"
+              }`}
+            >
+              <button
+                onClick={() => setEnabled(tmpl, !tmpl.enabled)}
+                className={`w-10 h-6 rounded-full transition-all duration-200 flex-shrink-0 relative mt-1 ${tmpl.enabled ? "bg-primary" : "bg-border"}`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200 ${tmpl.enabled ? "left-[18px]" : "left-0.5"}`} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold truncate">{tmpl.name}</h3>
+                  {tmpl.enabled && <span className="badge-primary">{t("templates_active")}</span>}
+                </div>
+                <p className="text-xs text-muted font-mono mt-1 break-words">{tmpl.content}</p>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button onClick={() => { setEditing(tmpl); setShowForm(false); }} className="text-muted hover:text-accent transition-colors p-1.5" title={t("templates_edit")} aria-label={t("templates_edit")}>
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteTemplate(tmpl.id)} className="text-muted hover:text-red-400 transition-colors p-1.5" title={t("templates_delete")} aria-label={t("templates_delete")}>
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type DesktopAlertItem = {
+  icon: typeof Gift;
+  color: string;
+  bg: string;
+  titleKey: TranslationKey;
+  subKey?: TranslationKey;
+  value: string;
+  onChange: (v: string) => void;
+  placeholderKey: TranslationKey;
+  varsKey: TranslationKey;
+  presetKey: TranslationKey;
+};
+
+function DesktopAlertPhrasesPanel({ t }: { t: TFunc }) {
+  const { settings, set } = useAlertPhrasesState();
+
+  if (!settings) return <div className="card animate-pulse h-[520px]" />;
+
+  const items: DesktopAlertItem[] = [
+    { icon: Gift, color: "text-amber-400", bg: "bg-amber-500/15", titleKey: "notif_gifts", subKey: "reading_alert_gift_single", value: settings.voice_alert_gift_single ?? "", onChange: (v) => set("voice_alert_gift_single", v), placeholderKey: "voice_alert_gift_single", varsKey: "reading_alert_vars_name_gift", presetKey: "reading_alert_preset_gift_single_2" },
+    { icon: Gift, color: "text-amber-400", bg: "bg-amber-500/15", titleKey: "notif_gifts", subKey: "reading_alert_gift_multi", value: settings.voice_alert_gift_multi ?? "", onChange: (v) => set("voice_alert_gift_multi", v), placeholderKey: "voice_alert_gift_multi", varsKey: "reading_alert_vars_name_gift_count", presetKey: "reading_alert_preset_gift_multi_2" },
+    { icon: UserPlus, color: "text-primary", bg: "bg-primary/15", titleKey: "notif_followers", value: settings.voice_alert_follow ?? "", onChange: (v) => set("voice_alert_follow", v), placeholderKey: "voice_alert_follow", varsKey: "reading_alert_vars_name", presetKey: "reading_alert_preset_follow_2" },
+    { icon: Heart, color: "text-pink-400", bg: "bg-pink-500/15", titleKey: "notif_likes", subKey: "reading_alert_like_single", value: settings.voice_alert_like_single ?? "", onChange: (v) => set("voice_alert_like_single", v), placeholderKey: "voice_alert_like_single", varsKey: "reading_alert_vars_name", presetKey: "reading_alert_preset_like_single_2" },
+    { icon: Heart, color: "text-pink-400", bg: "bg-pink-500/15", titleKey: "notif_likes", subKey: "reading_alert_like_multi", value: settings.voice_alert_like_multi ?? "", onChange: (v) => set("voice_alert_like_multi", v), placeholderKey: "voice_alert_like_multi", varsKey: "reading_alert_vars_name_count", presetKey: "reading_alert_preset_like_multi_2" },
+    { icon: Share2, color: "text-sky-400", bg: "bg-sky-500/15", titleKey: "notif_shares", value: settings.voice_alert_share ?? "", onChange: (v) => set("voice_alert_share", v), placeholderKey: "voice_alert_share", varsKey: "reading_alert_vars_name", presetKey: "reading_alert_preset_share_2" },
+    { icon: Crown, color: "text-accent", bg: "bg-accent/15", titleKey: "notif_subs", value: settings.voice_alert_sub ?? "", onChange: (v) => set("voice_alert_sub", v), placeholderKey: "voice_alert_sub", varsKey: "reading_alert_vars_name", presetKey: "reading_alert_preset_sub_2" },
+  ];
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-4 h-4 text-accent" />
+        </div>
+        <h3 className="text-sm font-bold">{t("reading_section_alerts")}</h3>
+      </div>
+      <p className="text-xs text-muted">{highlightVars(t("reading_section_alerts_help"))}</p>
+
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <DesktopAlertCard key={i} item={item} t={t} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DesktopAlertCard({ item, t }: { item: DesktopAlertItem; t: TFunc }) {
+  const { icon: Icon, color, bg, titleKey, subKey, value, onChange, placeholderKey, varsKey, presetKey } = item;
+  return (
+    <div className="rounded-xl border border-border bg-bg-soft p-3.5">
+      <div className="flex items-start gap-2.5 mb-2">
+        <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>
+          <Icon className={`w-4 h-4 ${color}`} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            {t(titleKey)}
+            {subKey && <span className="text-muted font-normal"> — {t(subKey)}</span>}
+          </p>
+        </div>
+        {value && (
+          <button
+            onClick={() => onChange("")}
+            className="text-muted hover:text-primary transition-colors p-1 flex-shrink-0"
+            title={t("reading_alert_reset")}
+            aria-label={t("reading_alert_reset")}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={t(placeholderKey)} className="input text-sm" />
+      <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
+        <p className="text-[10px] text-muted">{highlightVars(t(varsKey))}</p>
+        <button onClick={() => onChange(t(presetKey))} className="badge-muted hover:bg-border text-[11px] flex-shrink-0">
+          {t(presetKey)}
+        </button>
       </div>
     </div>
   );
