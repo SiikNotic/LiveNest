@@ -714,7 +714,7 @@ function DesktopVoicesMain({
   const visible = q ? voices.filter((v) => v.name.toLowerCase().includes(q)) : voices;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-center">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
       <div className="card p-0 overflow-hidden flex flex-col h-[520px]">
         <div className="flex-shrink-0 flex items-center justify-between gap-3 p-4 border-b border-border">
           <div className="flex items-center gap-2.5 min-w-0">
