@@ -242,6 +242,13 @@ export const translations = {
     menu_section_live: "Transmisión",
     menu_section_settings: "Configuración",
 
+    // Ítem combinado del sidebar de escritorio — Chat/Alertas/Música ya se
+    // muestran juntos en un solo dashboard (ver DesktopDashboard.tsx), así
+    // que el menú tiene una sola entrada para los tres en vez de repetir
+    // el mismo destino 3 veces.
+    nav_live: "En vivo",
+    dash_subtitle: "Chat, alertas y música — todo en un solo lugar.",
+
     // Tabs
     tab_chat: "Chat",
     tab_events: "Actividad",
@@ -1096,6 +1103,9 @@ export const translations = {
 
     menu_section_live: "Live",
     menu_section_settings: "Settings",
+
+    nav_live: "Live",
+    dash_subtitle: "Chat, alerts and music — all in one place.",
 
     tab_chat: "Chat",
     tab_events: "Activity",

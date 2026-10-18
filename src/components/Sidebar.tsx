@@ -1,21 +1,36 @@
-import { MessageCircle, Sparkles, Music, Bell, Mic, SlidersHorizontal, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
+import { Radio, Bell, Mic, SlidersHorizontal, Settings, Crown, Shield, Bookmark, LogOut } from "lucide-react";
 import type { TabId } from "../App";
 import { useAuth } from "../lib/auth";
-import { useI18n } from "../lib/i18n";
+import { useI18n, type TranslationKey } from "../lib/i18n";
 import { useStore } from "../lib/store";
 
-// Mismos items que el menú móvil (Header.tsx) — una sola fuente de verdad
-// de qué pestañas existen realmente en la app, para no inventar secciones
-// que no tienen una vista detrás.
-const NAV_ITEMS: { id: TabId; labelKey: import("../lib/i18n").TranslationKey; icon: typeof MessageCircle }[] = [
-  { id: "chat", labelKey: "tab_chat", icon: MessageCircle },
-  { id: "channels", labelKey: "tab_channels", icon: Bookmark },
-  { id: "events", labelKey: "tab_events", icon: Sparkles },
-  { id: "music", labelKey: "tab_music", icon: Music },
-  { id: "notifications", labelKey: "tab_notifications", icon: Bell },
-  { id: "voices", labelKey: "tab_voices", icon: Mic },
-  { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
-  { id: "general", labelKey: "tab_general", icon: Settings },
+// Chat/Alertas/Música tenían 3 entradas separadas acá, pero en escritorio
+// las tres llevan al MISMO dashboard combinado (ver DesktopDashboard.tsx:
+// isDashboard muestra los tres paneles juntos sin importar cuál tab esté
+// activo) — eran 3 botones distintos para un solo destino, confuso sin
+// ninguna razón real. Ahora es una sola entrada "En vivo" (tab "chat",
+// el mismo valor de siempre — DesktopDashboard no cambia). Mobile sigue
+// con sus 3 pantallas separadas de verdad en Header.tsx, sin tocar: ahí
+// cada una ES una pantalla distinta, no hay duplicación que arreglar.
+const LIVE_DASHBOARD_TABS: TabId[] = ["chat", "events", "music"];
+
+const SECTIONS: { sectionKey: TranslationKey; items: { id: TabId; labelKey: TranslationKey; icon: typeof Bell }[] }[] = [
+  {
+    sectionKey: "menu_section_live",
+    items: [
+      { id: "chat", labelKey: "nav_live", icon: Radio },
+      { id: "channels", labelKey: "tab_channels", icon: Bookmark },
+    ],
+  },
+  {
+    sectionKey: "menu_section_settings",
+    items: [
+      { id: "notifications", labelKey: "tab_notifications", icon: Bell },
+      { id: "voices", labelKey: "tab_voices", icon: Mic },
+      { id: "reading", labelKey: "tab_reading", icon: SlidersHorizontal },
+      { id: "general", labelKey: "tab_general", icon: Settings },
+    ],
+  },
 ];
 
 type Props = {
@@ -49,25 +64,36 @@ export function Sidebar({ active, onChange }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-3 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onChange(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
-                isActive
-                  ? "bg-primary/15 text-primary"
-                  : "text-text-soft hover:bg-bg-hover hover:text-text"
-              }`}
-            >
-              <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className="text-sm font-semibold truncate">{t(item.labelKey)}</span>
-            </button>
-          );
-        })}
+      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-3 py-4 space-y-4">
+        {SECTIONS.map((section) => (
+          <div key={section.sectionKey} className="space-y-1">
+            <p className="px-3 pb-1 text-[11px] font-semibold text-muted uppercase tracking-wide">
+              {t(section.sectionKey)}
+            </p>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              // "chat" representa el dashboard combinado — también queda
+              // resaltado si active quedó en "events"/"music" (no debería
+              // pasar nunca desde este sidebar, pero por si llega por otro
+              // camino no se ve como que ninguna sección está activa).
+              const isActive = item.id === "chat" ? LIVE_DASHBOARD_TABS.includes(active) : active === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onChange(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 ${
+                    isActive
+                      ? "bg-primary/15 text-primary"
+                      : "text-text-soft hover:bg-bg-hover hover:text-text"
+                  }`}
+                >
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />
+                  <span className="text-sm font-semibold truncate">{t(item.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
 
         {isAdmin && (
           <button

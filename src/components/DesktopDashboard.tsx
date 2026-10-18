@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Radio } from "lucide-react";
 import { ChatView } from "../views/ChatView";
 import { EventsView } from "../views/EventsView";
 import { MusicView } from "../views/MusicView";
@@ -46,17 +47,35 @@ function Panel({ id, grow, children }: { id: PanelId; grow: number; children: Re
 }
 
 export function DesktopDashboard() {
+  const { t } = useI18n();
   return (
-    <div className="h-full min-h-0 flex gap-4 px-4 lg:px-6 py-4 overflow-hidden">
-      <Panel id="chat" grow={2}>
-        <ChatView />
-      </Panel>
-      <Panel id="events" grow={1}>
-        <EventsView />
-      </Panel>
-      <Panel id="music" grow={1}>
-        <MusicView />
-      </Panel>
+    <div className="h-full min-h-0 flex flex-col gap-4 px-4 lg:px-6 py-4 overflow-hidden">
+      {/* Mismo patrón de encabezado (ícono + título + subtítulo) que usan
+          Lectura, Voces, Apariencia, etc. — antes esta pantalla arrancaba
+          directo en los paneles, sin nada que la identificara como "En
+          vivo" (la entrada que ahora tiene el sidebar), inconsistente con
+          el resto de la app. */}
+      <div className="card flex items-center gap-3 flex-shrink-0">
+        <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Radio className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-sm font-bold">{t("nav_live")}</h1>
+          <p className="text-xs text-muted">{t("dash_subtitle")}</p>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
+        <Panel id="chat" grow={2}>
+          <ChatView />
+        </Panel>
+        <Panel id="events" grow={1}>
+          <EventsView />
+        </Panel>
+        <Panel id="music" grow={1}>
+          <MusicView />
+        </Panel>
+      </div>
     </div>
   );
 }
